@@ -24,19 +24,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Add headers middleware
-app.use((req: Request, res: Response, next: NextFunction) => {
-  res.header('Access-Control-Allow-Origin', clientUrl);
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  next();
-});
+// Handle preflight requests
+app.options('*', cors());
 
 // Session configuration
 app.use(session({
@@ -55,14 +44,18 @@ app.use(session({
   }
 }));
 
-// API Routes - Make sure they are before static files
-app.use('/api/games', gameRoutes);
+// API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/games', gameRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Error:', err);
-  res.status(500).json({ message: 'Une erreur est survenue' });
+  res.status(500).json({ 
+    success: false,
+    message: 'Une erreur est survenue',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
 // Serve static files in production
