@@ -22,7 +22,11 @@
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization"
       },
-      "dest": "/dist/server/index.js"
+      "dest": "/dist/server/index.js",
+      "continue": true
+    },
+    {
+      "handle": "filesystem"
     },
     {
       "src": "/assets/(.*)",
