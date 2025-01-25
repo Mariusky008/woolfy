@@ -1,7 +1,28 @@
 import { Request, Response } from 'express';
-import { User } from '../models/User';
+import { User, IUser } from '../models/User';
+import { Types } from 'mongoose';
+
+// Extend Express.Session type
+declare module 'express-session' {
+  interface Session {
+    userId: string | undefined;
+  }
+}
+
+type SafeUser = Omit<IUser, 'password' | 'comparePassword'> & {
+  _id: string;
+};
 
 export class AuthController {
+  private sanitizeUser(user: IUser & { _id: Types.ObjectId }): SafeUser {
+    const { password, comparePassword, ...safeUser } = user.toObject();
+    const userId = user._id.toString();
+    return {
+      ...safeUser,
+      _id: userId
+    };
+  }
+
   // Register a new user
   async register(req: Request, res: Response) {
     try {
@@ -10,7 +31,7 @@ export class AuthController {
       // Check if user already exists
       const existingUser = await User.findOne({ 
         $or: [{ email }, { username }] 
-      });
+      }).exec();
 
       if (existingUser) {
         return res.status(400).json({ 
@@ -21,7 +42,7 @@ export class AuthController {
       }
 
       // Create new user
-      const user = new User({
+      const user = await User.create({
         username,
         email,
         password,
@@ -35,18 +56,13 @@ export class AuthController {
         }
       });
 
-      await user.save();
-
       // Set user session
-      req.session.userId = user._id;
-
-      // Return user without password
-      const userResponse = user.toObject();
-      delete userResponse.password;
+      const typedUser = user as unknown as { _id: Types.ObjectId };
+      req.session.userId = typedUser._id.toString();
 
       res.status(201).json({
         message: 'Inscription réussie',
-        user: userResponse
+        user: this.sanitizeUser(user as IUser & { _id: Types.ObjectId })
       });
 
     } catch (error) {
@@ -63,7 +79,7 @@ export class AuthController {
       const { email, password } = req.body;
 
       // Find user by email
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ email }).exec();
 
       if (!user) {
         return res.status(401).json({ 
@@ -81,15 +97,12 @@ export class AuthController {
       }
 
       // Set user session
-      req.session.userId = user._id;
-
-      // Return user without password
-      const userResponse = user.toObject();
-      delete userResponse.password;
+      const typedUser = user as unknown as { _id: Types.ObjectId };
+      req.session.userId = typedUser._id.toString();
 
       res.json({
         message: 'Connexion réussie',
-        user: userResponse
+        user: this.sanitizeUser(user as IUser & { _id: Types.ObjectId })
       });
 
     } catch (error) {
@@ -129,7 +142,7 @@ export class AuthController {
         });
       }
 
-      const user = await User.findById(req.session.userId);
+      const user = await User.findById(req.session.userId).exec();
 
       if (!user) {
         return res.status(404).json({ 
@@ -137,11 +150,9 @@ export class AuthController {
         });
       }
 
-      // Return user without password
-      const userResponse = user.toObject();
-      delete userResponse.password;
-
-      res.json({ user: userResponse });
+      res.json({ 
+        user: this.sanitizeUser(user as IUser & { _id: Types.ObjectId })
+      });
 
     } catch (error) {
       console.error('Get current user error:', error);
