@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
-import { User, IUser } from '../models/User';
-import { Types } from 'mongoose';
+import { User } from '../models/User';
 
 // Extend Express.Session type
 declare module 'express-session' {
@@ -25,18 +24,7 @@ type SafeUser = {
 };
 
 export class AuthController {
-  private sanitizeUser(user: any): SafeUser {
-    const { _id, username, email, createdAt, stats } = user.toObject();
-    return {
-      _id: _id.toString(),
-      username,
-      email,
-      createdAt,
-      stats
-    };
-  }
-
-  // Register a new user
+  // Register new user
   async register(req: Request, res: Response) {
     try {
       const { username, email, password } = req.body;
@@ -67,15 +55,7 @@ export class AuthController {
       const user = await User.create({
         username,
         email,
-        password,
-        stats: {
-          gamesPlayed: 0,
-          gamesWon: 0,
-          badges: [],
-          trophies: [],
-          points: 0,
-          rank: 0
-        }
+        password
       });
 
       if (!user) {
@@ -219,6 +199,7 @@ export class AuthController {
           message: 'Déconnexion réussie' 
         });
       });
+
     } catch (error: any) {
       console.error('Logout error:', error);
       res.status(500).json({ 
@@ -262,5 +243,11 @@ export class AuthController {
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
+  }
+
+  // Helper method to sanitize user object before sending to client
+  private sanitizeUser(user: any) {
+    const { password, __v, ...safeUser } = user.toObject();
+    return safeUser;
   }
 } 
