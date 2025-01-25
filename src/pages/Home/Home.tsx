@@ -165,7 +165,7 @@ export const HomePage = () => {
               onClick={() => navigate('/auth')}
               px={8}
             >
-              Rejoindre l'aventure
+              Jouer maintenant
             </Button>
             <Button
               size="lg"
@@ -176,7 +176,7 @@ export const HomePage = () => {
               onClick={() => navigate('/auth')}
               px={8}
             >
-              En savoir plus
+              Participer
             </Button>
           </MotionFlex>
         </MotionBox>
@@ -392,7 +392,7 @@ export const HomePage = () => {
             onClick={() => navigate('/auth')}
             px={12}
           >
-            Commencer maintenant
+            Jouer maintenant
           </Button>
         </MotionBox>
       </Container>
