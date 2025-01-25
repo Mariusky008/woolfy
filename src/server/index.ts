@@ -11,14 +11,14 @@ import { GameService } from './services/GameService';
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
-const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+const clientUrl = isProduction ? 'https://woolfy.fr' : 'http://localhost:5173';
 
 // Middleware
 app.use(express.json());
 
 // CORS configuration
 app.use(cors({
-  origin: clientUrl,
+  origin: isProduction ? ['https://woolfy.fr', 'https://www.woolfy.fr'] : 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
