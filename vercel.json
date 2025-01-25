@@ -24,8 +24,8 @@
     }
   ],
   "env": {
-    "MONGODB_URI": "@mongodb_uri",
-    "SESSION_SECRET": "@session_secret",
-    "CLIENT_URL": "@client_url"
+    "MONGODB_URI": "${MONGODB_URI}",
+    "SESSION_SECRET": "${SESSION_SECRET}",
+    "CLIENT_URL": "${CLIENT_URL}"
   }
 } 
