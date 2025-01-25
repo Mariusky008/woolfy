@@ -2,6 +2,13 @@
   "version": 2,
   "builds": [
     {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
       "src": "dist/server/index.js",
       "use": "@vercel/node"
     }
@@ -12,7 +19,8 @@
       "dest": "dist/server/index.js"
     },
     {
-      "handle": "filesystem"
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
     },
     {
       "src": "/(.*)",
@@ -22,6 +30,7 @@
   "env": {
     "MONGODB_URI": "${MONGODB_URI}",
     "SESSION_SECRET": "${SESSION_SECRET}",
-    "CLIENT_URL": "${CLIENT_URL}"
+    "CLIENT_URL": "${CLIENT_URL}",
+    "NODE_ENV": "production"
   }
 } 

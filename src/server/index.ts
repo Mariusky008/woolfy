@@ -31,22 +31,25 @@ app.use(session({
   cookie: {
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
-    maxAge: 24 * 60 * 60 * 1000 // 1 day
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    domain: isProduction ? '.woolfy.fr' : undefined
   }
 }));
-
-// API Routes
-app.use('/api/games', gameRoutes);
-app.use('/api/auth', authRoutes);
 
 // Serve static files in production
 if (isProduction) {
   const distPath = path.join(__dirname, '../../dist');
   app.use(express.static(distPath));
-  
-  // Handle client-side routing
+}
+
+// API Routes
+app.use('/api/games', gameRoutes);
+app.use('/api/auth', authRoutes);
+
+// Handle client-side routing in production
+if (isProduction) {
   app.get('*', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
+    res.sendFile(path.join(__dirname, '../../dist/index.html'));
   });
 }
 
@@ -61,7 +64,7 @@ connectDB()
     console.log('MongoDB connected successfully');
     
     app.listen(port, () => {
-      console.log(`Server is running on port ${port}`);
+      console.log(`Server is running on port ${port} in ${process.env.NODE_ENV} mode`);
       gameService.start();
     });
   })
