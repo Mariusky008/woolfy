@@ -11,7 +11,7 @@ import { GameService } from './services/GameService';
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
-const clientUrl = isProduction ? 'https://woolfy.fr' : 'http://localhost:5173';
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Middleware
 app.use(express.json());
