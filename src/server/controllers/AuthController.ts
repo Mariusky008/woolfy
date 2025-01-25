@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { User, IUser } from '../models/User';
+import { Types } from 'mongoose';
 
 // Extend Express.Session type
 declare module 'express-session' {
@@ -13,86 +14,76 @@ type SafeUser = {
   username: string;
   email: string;
   createdAt: Date;
-  stats: {
-    gamesPlayed: number;
-    gamesWon: number;
-    badges: string[];
-    trophies: string[];
-    points: number;
-    rank: number;
-  };
+  gamesPlayed: number;
+  gamesWon: number;
+  badges: string[];
+  trophies: string[];
+  points: number;
+  rank: string;
 };
 
 export class AuthController {
   private sanitizeUser(user: IUser): SafeUser {
-    const { _id, username, email, createdAt, stats } = user.toObject();
+    const { _id, username, email, createdAt, gamesPlayed, gamesWon, badges, trophies, points, rank } = user;
     return {
-      _id: _id.toString(),
+      _id: (_id as Types.ObjectId).toString(),
       username,
       email,
       createdAt,
-      stats
+      gamesPlayed,
+      gamesWon,
+      badges,
+      trophies,
+      points,
+      rank
     };
   }
 
   // Register new user
-  async register(req: Request, res: Response) {
+  register = async (req: Request, res: Response) => {
     try {
       const { username, email, password } = req.body;
 
       // Validate input
       if (!username || !email || !password) {
         return res.status(400).json({
-          success: false,
           message: 'Tous les champs sont requis'
         });
       }
 
       // Check if user already exists
-      const existingUser = await User.findOne({ 
-        $or: [{ email }, { username }] 
+      const existingUser = await User.findOne({
+        $or: [
+          { email },
+          { username }
+        ]
       }).exec();
 
       if (existingUser) {
-        return res.status(400).json({ 
-          success: false,
-          message: existingUser.email === email 
-            ? 'Cet email est déjà utilisé' 
-            : 'Ce nom d\'utilisateur est déjà pris' 
-        });
+        if (existingUser.email === email) {
+          return res.status(400).json({ message: 'Un compte existe déjà avec cet email' });
+        } else {
+          return res.status(400).json({ message: 'Ce nom d\'utilisateur est déjà pris' });
+        }
       }
 
       // Create new user with default stats
-      const user = await User.create({
+      const user = new User({
         username,
         email,
         password,
-        stats: {
-          gamesPlayed: 0,
-          gamesWon: 0,
-          badges: [],
-          trophies: [],
-          points: 0,
-          rank: 0
-        }
+        gamesPlayed: 0,
+        gamesWon: 0,
+        badges: [],
+        trophies: [],
+        points: 0,
+        rank: 'Louveteau'
       });
 
-      if (!user) {
-        return res.status(500).json({
-          success: false,
-          message: 'Erreur lors de la création de l\'utilisateur'
-        });
-      }
+      const savedUser = await user.save();
 
       // Set user session
-      const userId = user._id?.toString();
-      if (!userId) {
-        return res.status(500).json({
-          success: false,
-          message: 'Erreur lors de la création de l\'utilisateur'
-        });
-      }
-      req.session.userId = userId;
+      req.session.userId = savedUser._id.toString();
 
       // Save session before sending response
       return new Promise<void>((resolve, reject) => {
@@ -103,7 +94,7 @@ export class AuthController {
             return;
           }
 
-          const safeUser = this.sanitizeUser(user);
+          const safeUser = this.sanitizeUser(savedUser);
           res.status(201).json({
             success: true,
             message: 'Inscription réussie',
@@ -114,17 +105,47 @@ export class AuthController {
       });
 
     } catch (error: any) {
-      console.error('Registration error:', error);
-      res.status(500).json({ 
-        success: false,
-        message: 'Erreur lors de l\'inscription',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
+      console.warn('Registration error:', error);
+      
+      // Gestion des erreurs de validation Mongoose
+      if (error.name === 'ValidationError') {
+        const validationErrors = Object.values(error.errors).map((err: any) => {
+          switch (err.path) {
+            case 'username':
+              if (err.kind === 'minlength') {
+                return 'Le nom d\'utilisateur doit contenir au moins 3 caractères';
+              }
+              return 'Le nom d\'utilisateur est invalide';
+            case 'email':
+              return 'L\'email est invalide';
+            case 'password':
+              if (err.kind === 'minlength') {
+                return 'Le mot de passe doit contenir au moins 6 caractères';
+              }
+              return 'Le mot de passe est invalide';
+            default:
+              return err.message;
+          }
+        });
+        return res.status(400).json({ message: validationErrors.join('. ') });
+      }
+
+      // Gestion des erreurs de duplication MongoDB
+      if (error.code === 11000) {
+        if (error.keyPattern.email) {
+          return res.status(400).json({ message: 'Un compte existe déjà avec cet email' });
+        }
+        if (error.keyPattern.username) {
+          return res.status(400).json({ message: 'Ce nom d\'utilisateur est déjà pris' });
+        }
+      }
+
+      return res.status(500).json({ message: 'Une erreur est survenue lors de l\'inscription' });
     }
   }
 
   // Login user
-  async login(req: Request, res: Response) {
+  login = async (req: Request, res: Response) => {
     try {
       console.log('Login attempt:', req.body);
       const { email, password } = req.body;
@@ -206,7 +227,7 @@ export class AuthController {
   }
 
   // Logout user
-  async logout(req: Request, res: Response) {
+  logout = async (req: Request, res: Response) => {
     try {
       if (!req.session) {
         return res.status(200).json({ 
@@ -240,7 +261,7 @@ export class AuthController {
   }
 
   // Get current user
-  async getCurrentUser(req: Request, res: Response) {
+  getCurrentUser = async (req: Request, res: Response) => {
     try {
       if (!req.session.userId) {
         return res.status(401).json({ 

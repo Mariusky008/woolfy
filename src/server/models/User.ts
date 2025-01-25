@@ -6,14 +6,12 @@ export interface IUser extends Document {
   email: string;
   password: string;
   createdAt: Date;
-  stats: {
-    gamesPlayed: number;
-    gamesWon: number;
-    badges: string[];
-    trophies: string[];
-    points: number;
-    rank: number;
-  };
+  gamesPlayed: number;
+  gamesWon: number;
+  badges: string[];
+  trophies: string[];
+  points: number;
+  rank: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -22,16 +20,12 @@ const UserSchema = new Schema<IUser>({
     type: String,
     required: true,
     unique: true,
-    trim: true,
-    minlength: 3,
-    maxlength: 20
+    minlength: 3
   },
   email: {
     type: String,
     required: true,
-    unique: true,
-    trim: true,
-    lowercase: true
+    unique: true
   },
   password: {
     type: String,
@@ -42,13 +36,29 @@ const UserSchema = new Schema<IUser>({
     type: Date,
     default: Date.now
   },
-  stats: {
-    gamesPlayed: { type: Number, default: 0 },
-    gamesWon: { type: Number, default: 0 },
-    badges: [{ type: String }],
-    trophies: [{ type: String }],
-    points: { type: Number, default: 0 },
-    rank: { type: Number, default: 0 }
+  gamesPlayed: {
+    type: Number,
+    default: 0
+  },
+  gamesWon: {
+    type: Number,
+    default: 0
+  },
+  badges: {
+    type: [String],
+    default: []
+  },
+  trophies: {
+    type: [String],
+    default: []
+  },
+  points: {
+    type: Number,
+    default: 0
+  },
+  rank: {
+    type: String,
+    default: 'Louveteau'
   }
 });
 

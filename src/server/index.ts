@@ -28,21 +28,27 @@ app.use(cors({
 app.options('*', cors());
 
 // Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'woolfy-secret-key',
+const sessionConfig = {
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/woolfy',
-    ttl: 24 * 60 * 60 // 1 day
+    mongoUrl: process.env.MONGODB_URI,
+    ttl: 24 * 60 * 60, // 1 day
+    autoRemove: 'native',
+    touchAfter: 24 * 3600 // 24 hours
   }),
   cookie: {
     secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24, // 1 day
+    sameSite: isProduction ? ('none' as const) : ('lax' as const),
     domain: isProduction ? '.woolfy.fr' : undefined
   }
-}));
+};
+
+app.set('trust proxy', 1);
+app.use(session(sessionConfig));
 
 // API Routes
 app.use('/api/auth', authRoutes);

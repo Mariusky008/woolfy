@@ -62,6 +62,7 @@ export const AuthPage = () => {
 
     try {
       const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register'
+      console.log('Sending request to:', endpoint)
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -70,15 +71,21 @@ export const AuthPage = () => {
         body: JSON.stringify(isLogin ? {
           email: formData.email,
           password: formData.password
-        } : formData),
+        } : {
+          username: formData.username,
+          email: formData.email,
+          password: formData.password
+        }),
         credentials: 'include'
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
+        const data = await response.json()
         throw new Error(data.message || 'Une erreur est survenue')
       }
+
+      const data = await response.json()
+      console.log('Response:', data)
 
       toast({
         title: isLogin ? 'Connexion réussie' : 'Compte créé avec succès',
@@ -90,6 +97,7 @@ export const AuthPage = () => {
 
       navigate('/games')
     } catch (error) {
+      console.error('Auth error:', error)
       toast({
         title: 'Erreur',
         description: error instanceof Error ? error.message : 'Une erreur est survenue',
