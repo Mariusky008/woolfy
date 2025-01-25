@@ -7,9 +7,12 @@
     "dev:server": "ts-node-dev --project tsconfig.server.json --respawn --transpile-only src/server/index.ts",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "build": "tsc && vite build",
-    "vercel-build": "tsc --project tsconfig.server.json && vite build",
+    "build:server": "tsc --project tsconfig.server.json",
+    "build:client": "vite build",
+    "vercel-build": "npm run build:server && npm run build:client",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node dist/server/index.js"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.1.1",

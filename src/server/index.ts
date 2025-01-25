@@ -3,12 +3,14 @@ import express from 'express';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import cors from 'cors';
+import path from 'path';
 import { connectDB } from './config/db';
 import gameRoutes from './routes/gameRoutes';
 import authRoutes from './routes/authRoutes';
 import { GameService } from './services/GameService';
 
 const app = express();
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Middleware
 app.use(express.json());
@@ -27,15 +29,26 @@ app.use(session({
     ttl: 24 * 60 * 60 // 1 day
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 1 day
   }
 }));
 
-// Routes
+// API Routes
 app.use('/api/games', gameRoutes);
 app.use('/api/auth', authRoutes);
+
+// Serve static files in production
+if (isProduction) {
+  const distPath = path.join(__dirname, '../../dist');
+  app.use(express.static(distPath));
+  
+  // Handle client-side routing
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 // Initialize game service
 const gameService = new GameService();
