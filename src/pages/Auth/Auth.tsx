@@ -88,7 +88,7 @@ export const AuthPage = () => {
         isClosable: true,
       })
 
-      navigate('/')
+      navigate('/games')
     } catch (error) {
       toast({
         title: 'Erreur',
