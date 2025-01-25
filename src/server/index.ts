@@ -14,9 +14,13 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // Middleware
 app.use(express.json());
+
+// CORS configuration
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true
+  origin: isProduction ? ['https://woolfy.fr', 'https://www.woolfy.fr'] : 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Session configuration
@@ -36,18 +40,16 @@ app.use(session({
   }
 }));
 
+// API Routes - Make sure they are before static files
+app.use('/api/games', gameRoutes);
+app.use('/api/auth', authRoutes);
+
 // Serve static files in production
 if (isProduction) {
   const distPath = path.join(__dirname, '../../dist');
   app.use(express.static(distPath));
-}
 
-// API Routes
-app.use('/api/games', gameRoutes);
-app.use('/api/auth', authRoutes);
-
-// Handle client-side routing in production
-if (isProduction) {
+  // Handle client-side routing
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../../dist/index.html'));
   });

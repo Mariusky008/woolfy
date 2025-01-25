@@ -2,25 +2,33 @@
   "version": 2,
   "builds": [
     {
+      "src": "dist/server/index.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist"
       }
-    },
-    {
-      "src": "dist/server/index.js",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "dist/server/index.js"
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      },
+      "continue": true
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
+      "src": "/api/(.*)",
+      "dest": "/dist/server/index.js"
+    },
+    {
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
@@ -30,7 +38,7 @@
   "env": {
     "MONGODB_URI": "${MONGODB_URI}",
     "SESSION_SECRET": "${SESSION_SECRET}",
-    "CLIENT_URL": "${CLIENT_URL}",
+    "CLIENT_URL": "https://woolfy.fr",
     "NODE_ENV": "production"
   }
 } 
