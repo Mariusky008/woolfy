@@ -9,17 +9,30 @@ declare module 'express-session' {
   }
 }
 
-type SafeUser = Omit<IUser, 'password' | 'comparePassword'> & {
+type SafeUser = {
   _id: string;
+  username: string;
+  email: string;
+  createdAt: Date;
+  stats: {
+    gamesPlayed: number;
+    gamesWon: number;
+    badges: string[];
+    trophies: string[];
+    points: number;
+    rank: number;
+  };
 };
 
 export class AuthController {
-  private sanitizeUser(user: IUser & { _id: Types.ObjectId }): SafeUser {
-    const { password, comparePassword, ...safeUser } = user.toObject();
-    const userId = user._id.toString();
+  private sanitizeUser(user: any): SafeUser {
+    const { _id, username, email, createdAt, stats } = user.toObject();
     return {
-      ...safeUser,
-      _id: userId
+      _id: _id.toString(),
+      username,
+      email,
+      createdAt,
+      stats
     };
   }
 
@@ -27,6 +40,13 @@ export class AuthController {
   async register(req: Request, res: Response) {
     try {
       const { username, email, password } = req.body;
+
+      // Validate input
+      if (!username || !email || !password) {
+        return res.status(400).json({
+          message: 'Tous les champs sont requis'
+        });
+      }
 
       // Check if user already exists
       const existingUser = await User.findOne({ 
@@ -56,19 +76,35 @@ export class AuthController {
         }
       });
 
-      // Set user session
-      const typedUser = user as unknown as { _id: Types.ObjectId };
-      req.session.userId = typedUser._id.toString();
+      if (!user) {
+        return res.status(500).json({
+          message: 'Erreur lors de la création de l\'utilisateur'
+        });
+      }
 
-      res.status(201).json({
-        message: 'Inscription réussie',
-        user: this.sanitizeUser(user as IUser & { _id: Types.ObjectId })
+      // Set user session
+      req.session.userId = user._id.toString();
+
+      // Save session before sending response
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.status(500).json({
+            message: 'Erreur lors de la création de la session'
+          });
+        }
+
+        res.status(201).json({
+          message: 'Inscription réussie',
+          user: this.sanitizeUser(user)
+        });
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
       res.status(500).json({ 
-        message: 'Erreur lors de l\'inscription' 
+        message: 'Erreur lors de l\'inscription',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
@@ -77,6 +113,13 @@ export class AuthController {
   async login(req: Request, res: Response) {
     try {
       const { email, password } = req.body;
+
+      // Validate input
+      if (!email || !password) {
+        return res.status(400).json({
+          message: 'Email et mot de passe requis'
+        });
+      }
 
       // Find user by email
       const user = await User.findOne({ email }).exec();
@@ -97,18 +140,28 @@ export class AuthController {
       }
 
       // Set user session
-      const typedUser = user as unknown as { _id: Types.ObjectId };
-      req.session.userId = typedUser._id.toString();
+      req.session.userId = user._id.toString();
 
-      res.json({
-        message: 'Connexion réussie',
-        user: this.sanitizeUser(user as IUser & { _id: Types.ObjectId })
+      // Save session before sending response
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.status(500).json({
+            message: 'Erreur lors de la création de la session'
+          });
+        }
+
+        res.json({
+          message: 'Connexion réussie',
+          user: this.sanitizeUser(user)
+        });
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
       res.status(500).json({ 
-        message: 'Erreur lors de la connexion' 
+        message: 'Erreur lors de la connexion',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
@@ -116,6 +169,10 @@ export class AuthController {
   // Logout user
   async logout(req: Request, res: Response) {
     try {
+      if (!req.session) {
+        return res.status(200).json({ message: 'Déconnexion réussie' });
+      }
+
       req.session.destroy((err) => {
         if (err) {
           console.error('Logout error:', err);
@@ -125,10 +182,11 @@ export class AuthController {
         }
         res.json({ message: 'Déconnexion réussie' });
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Logout error:', error);
       res.status(500).json({ 
-        message: 'Erreur lors de la déconnexion' 
+        message: 'Erreur lors de la déconnexion',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
@@ -151,13 +209,14 @@ export class AuthController {
       }
 
       res.json({ 
-        user: this.sanitizeUser(user as IUser & { _id: Types.ObjectId })
+        user: this.sanitizeUser(user)
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Get current user error:', error);
       res.status(500).json({ 
-        message: 'Erreur lors de la récupération de l\'utilisateur' 
+        message: 'Erreur lors de la récupération de l\'utilisateur',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
