@@ -249,7 +249,7 @@ export const HomePage = () => {
                 mt={6}
                 colorScheme="blue"
                 size="sm"
-                onClick={() => navigate('/competition/free')}
+                onClick={() => navigate('/auth')}
               >
                 Jouer maintenant
               </Button>
@@ -275,7 +275,7 @@ export const HomePage = () => {
                 mt={6}
                 colorScheme="green"
                 size="sm"
-                onClick={() => navigate('/competition/quick')}
+                onClick={() => navigate('/auth')}
               >
                 Jouer maintenant
               </Button>
@@ -301,7 +301,7 @@ export const HomePage = () => {
                 mt={6}
                 colorScheme="purple"
                 size="sm"
-                onClick={() => navigate('/competition/classic')}
+                onClick={() => navigate('/auth')}
               >
                 Jouer maintenant
               </Button>
@@ -329,7 +329,7 @@ export const HomePage = () => {
                 mt={6}
                 colorScheme="orange"
                 size="sm"
-                onClick={() => navigate('/competition/pro')}
+                onClick={() => navigate('/auth')}
               >
                 Jouer maintenant
               </Button>
@@ -355,7 +355,7 @@ export const HomePage = () => {
                 mt={6}
                 colorScheme="red"
                 size="sm"
-                onClick={() => navigate('/competition/elite')}
+                onClick={() => navigate('/auth')}
               >
                 Participer
               </Button>
