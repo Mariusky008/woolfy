@@ -126,10 +126,12 @@ export class AuthController {
   // Login user
   async login(req: Request, res: Response) {
     try {
+      console.log('Login attempt:', req.body);
       const { email, password } = req.body;
 
       // Validate input
       if (!email || !password) {
+        console.log('Missing credentials');
         return res.status(400).json({
           success: false,
           message: 'Email et mot de passe requis'
@@ -138,6 +140,7 @@ export class AuthController {
 
       // Find user by email
       const user = await User.findOne({ email }).exec();
+      console.log('User found:', user ? 'yes' : 'no');
 
       if (!user) {
         return res.status(401).json({ 
@@ -148,6 +151,7 @@ export class AuthController {
 
       // Check password
       const isMatch = await user.comparePassword(password);
+      console.log('Password match:', isMatch);
 
       if (!isMatch) {
         return res.status(401).json({ 
@@ -159,12 +163,14 @@ export class AuthController {
       // Set user session
       const userId = user._id?.toString();
       if (!userId) {
+        console.log('No user ID');
         return res.status(500).json({
           success: false,
           message: 'Erreur lors de la connexion'
         });
       }
       req.session.userId = userId;
+      console.log('Session ID set:', userId);
 
       // Save session before sending response
       return new Promise<void>((resolve, reject) => {
@@ -172,11 +178,15 @@ export class AuthController {
           if (err) {
             console.error('Session save error:', err);
             reject(err);
-            return;
+            return res.status(500).json({
+              success: false,
+              message: 'Erreur lors de la création de la session'
+            });
           }
 
           const safeUser = this.sanitizeUser(user);
-          res.json({
+          console.log('Login successful, sending response');
+          res.status(200).json({
             success: true,
             message: 'Connexion réussie',
             user: safeUser
@@ -187,7 +197,7 @@ export class AuthController {
 
     } catch (error: any) {
       console.error('Login error:', error);
-      res.status(500).json({ 
+      return res.status(500).json({ 
         success: false,
         message: 'Erreur lors de la connexion',
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
