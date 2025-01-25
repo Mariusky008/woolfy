@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import cors from 'cors';
@@ -11,17 +11,32 @@ import { GameService } from './services/GameService';
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
+const clientUrl = isProduction ? 'https://woolfy.fr' : 'http://localhost:5173';
 
 // Middleware
 app.use(express.json());
 
 // CORS configuration
 app.use(cors({
-  origin: isProduction ? ['https://woolfy.fr', 'https://www.woolfy.fr'] : 'http://localhost:5173',
+  origin: clientUrl,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Add headers middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.header('Access-Control-Allow-Origin', clientUrl);
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
 
 // Session configuration
 app.use(session({
@@ -43,6 +58,12 @@ app.use(session({
 // API Routes - Make sure they are before static files
 app.use('/api/games', gameRoutes);
 app.use('/api/auth', authRoutes);
+
+// Error handling middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', err);
+  res.status(500).json({ message: 'Une erreur est survenue' });
+});
 
 // Serve static files in production
 if (isProduction) {
@@ -67,6 +88,7 @@ connectDB()
     
     app.listen(port, () => {
       console.log(`Server is running on port ${port} in ${process.env.NODE_ENV} mode`);
+      console.log(`CORS enabled for origin: ${clientUrl}`);
       gameService.start();
     });
   })
