@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { User } from '../models/User';
+import { User, IUser } from '../models/User';
 
 // Extend Express.Session type
 declare module 'express-session' {
@@ -24,6 +24,17 @@ type SafeUser = {
 };
 
 export class AuthController {
+  private sanitizeUser(user: IUser): SafeUser {
+    const { _id, username, email, createdAt, stats } = user.toObject();
+    return {
+      _id: _id.toString(),
+      username,
+      email,
+      createdAt,
+      stats
+    };
+  }
+
   // Register new user
   async register(req: Request, res: Response) {
     try {
@@ -51,11 +62,19 @@ export class AuthController {
         });
       }
 
-      // Create new user
+      // Create new user with default stats
       const user = await User.create({
         username,
         email,
-        password
+        password,
+        stats: {
+          gamesPlayed: 0,
+          gamesWon: 0,
+          badges: [],
+          trophies: [],
+          points: 0,
+          rank: 0
+        }
       });
 
       if (!user) {
@@ -243,11 +262,5 @@ export class AuthController {
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
-  }
-
-  // Helper method to sanitize user object before sending to client
-  private sanitizeUser(user: any) {
-    const { password, __v, ...safeUser } = user.toObject();
-    return safeUser;
   }
 } 
