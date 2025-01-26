@@ -24,21 +24,21 @@ const allowedOrigins = isProduction
 const notificationService = new NotificationService(httpServer);
 
 // Middleware
-app.use(express.json({
-  verify: (req: Request, res: Response, buf: Buffer, encoding: BufferEncoding) => {
-    try {
-      JSON.parse(buf.toString(encoding));
-    } catch (e: any) {
-      res.status(400).json({ 
-        success: false,
-        message: 'Invalid JSON payload',
-        error: process.env.NODE_ENV === 'development' ? e.message : undefined
-      });
-      throw e;
-    }
-  }
-}));
+app.use(express.json());
 app.use(cookieParser());
+
+// Add JSON parsing error handler
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof SyntaxError && 'body' in err) {
+    console.error('JSON Parsing Error:', err);
+    return res.status(400).json({
+      success: false,
+      message: 'Format JSON invalide',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+  next(err);
+});
 
 // CORS configuration
 app.use(cors({
