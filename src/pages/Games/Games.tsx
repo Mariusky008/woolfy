@@ -33,6 +33,7 @@ import {
 import { FaTrophy, FaCoins, FaUserFriends, FaCrown, FaMedal } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Navbar } from '../../components/Navbar'
 
 const MotionBox = motion(Box)
 
@@ -89,6 +90,51 @@ const mockGames: Game[] = [
     }
   },
   {
+    id: '8',
+    name: 'Partie Gratuite du Midi',
+    type: 'free',
+    players: { current: 0, max: 15, min: 15 },
+    startTime: '12:00',
+    duration: '1h',
+    rank: 'Top 800',
+    status: 'waiting',
+    rewards: {
+      badge: 'Badge Loup du Midi',
+      trophy: 'Trophée Meute du Jour',
+      points: '+150 points de classement'
+    }
+  },
+  {
+    id: '9',
+    name: 'Grande Partie Gratuite du Soir',
+    type: 'free',
+    players: { current: 0, max: 20, min: 20 },
+    startTime: '21:00',
+    duration: '1h30',
+    rank: 'Top 600',
+    status: 'waiting',
+    rewards: {
+      badge: 'Badge Loup Nocturne',
+      trophy: 'Trophée Meute de Nuit',
+      points: '+200 points de classement'
+    }
+  },
+  {
+    id: '7',
+    name: 'Grande Partie Gratuite',
+    type: 'free',
+    players: { current: 12, max: 20, min: 20 },
+    startTime: 'Démarre dès 15 joueurs',
+    duration: '1h30',
+    rank: 'Top 500',
+    status: 'waiting',
+    rewards: {
+      badge: 'Badge Meute Alpha',
+      trophy: 'Trophée Grande Meute',
+      points: '+200 points de classement'
+    }
+  },
+  {
     id: '3',
     name: 'Cash Game',
     type: 'cash',
@@ -140,6 +186,7 @@ const mockGames: Game[] = [
     startTime: '21:00',
     duration: '3h',
     rank: 'Top 100',
+    prize: '1000€',
     status: 'waiting',
     rewards: {
       badge: 'Badge Élite',
@@ -192,15 +239,23 @@ export const GamesPage = () => {
 
   const canGameStart = (game: Game) => {
     const now = new Date()
-    const currentTime = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`
+    const currentHour = now.getHours()
+    const currentMinutes = now.getMinutes()
     const minRequired = game.players.min ? Math.ceil(game.players.min * 0.7) : game.players.max
     
-    // Pour les parties qui démarrent à une heure fixe
-    if (game.startTime.includes(':')) {
-      return currentTime >= game.startTime && game.players.current >= minRequired
+    // Pour les parties qui démarrent à une heure fixe (classic, pro, elite, cash)
+    if (game.type === 'classic' || game.type === 'pro' || game.type === 'elite' || game.type === 'cash') {
+      if (game.startTime.includes(':')) {
+        const [startHour, startMinutes] = game.startTime.split(':').map(Number)
+        const isTimeReached = 
+          currentHour > startHour || 
+          (currentHour === startHour && currentMinutes >= startMinutes)
+        
+        return isTimeReached && game.players.current >= minRequired
+      }
     }
     
-    // Pour les parties qui démarrent quand le nombre de joueurs est atteint
+    // Pour les parties gratuites qui démarrent quand le nombre de joueurs est atteint
     return game.players.current >= minRequired
   }
 
@@ -211,6 +266,16 @@ export const GamesPage = () => {
     
     if (!registeredGames.has(game.id)) {
       return "S'inscrire"
+    }
+    
+    // Pour les parties avec une heure fixe (classic, pro, elite, cash)
+    if (game.startTime.includes(':')) {
+      const now = new Date()
+      const currentTime = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`
+      
+      if (currentTime < game.startTime) {
+        return 'En attente du début de la partie'
+      }
     }
     
     if (canGameStart(game)) {
@@ -238,205 +303,214 @@ export const GamesPage = () => {
     window.location.href = `/game/${gameId}/roles`
   }
 
-  const filteredGames = mockGames.filter(game => {
-    const matchesSearch = game.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesType = typeFilter === 'all' || game.type === typeFilter
-    return matchesSearch && matchesType
-  })
+  // Separate games by type
+  const freeGames = mockGames.filter(game => 
+    game.type === 'free' &&
+    game.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    (typeFilter === 'all' || game.type === typeFilter)
+  )
+
+  const paidGames = mockGames.filter(game => 
+    ['cash', 'classic', 'pro', 'elite'].includes(game.type) &&
+    game.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    (typeFilter === 'all' || game.type === typeFilter)
+  )
+
+  const GameCard = ({ game }: { game: Game }) => {
+    const typeInfo = getGameTypeInfo(game.type)
+    const minRequired = game.players.min ? Math.ceil(game.players.min * 0.7) : game.players.max
+    const playersNeeded = minRequired ? minRequired - game.players.current : 0
+
+    return (
+      <MotionBox
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        p={6}
+        borderRadius="xl"
+        bg="whiteAlpha.100"
+        backdropFilter="blur(10px)"
+        borderWidth="1px"
+        borderColor="whiteAlpha.200"
+        _hover={{ 
+          transform: 'translateY(-5px)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          transition: 'all 0.2s'
+        }}
+      >
+        <VStack align="stretch" spacing={4}>
+          <Flex justify="space-between" align="center">
+            <Tag size="lg" variant="subtle" colorScheme={game.type === 'free' ? 'green' : 'purple'}>
+              <TagLeftIcon as={typeInfo.icon} />
+              <TagLabel>{typeInfo.label}</TagLabel>
+            </Tag>
+            {game.prize && (
+              <Tag size="lg" variant="subtle" colorScheme="yellow">
+                <TagLeftIcon as={FaCoins} />
+                <TagLabel>{game.prize}</TagLabel>
+              </Tag>
+            )}
+            {game.rank && (
+              <Tag size="lg" variant="subtle" colorScheme="blue">
+                <TagLeftIcon as={StarIcon} />
+                <TagLabel>{game.rank}</TagLabel>
+              </Tag>
+            )}
+          </Flex>
+
+          <Heading size="md">{game.name}</Heading>
+          
+          <HStack spacing={4}>
+            <Tooltip label="Heure de début" placement="top">
+              <Flex align="center" color="gray.400">
+                <TimeIcon mr={2} />
+                <Text>{game.startTime}</Text>
+              </Flex>
+            </Tooltip>
+            <Tooltip label="Durée" placement="top">
+              <Flex align="center" color="gray.400">
+                <CalendarIcon mr={2} />
+                <Text>{game.duration}</Text>
+              </Flex>
+            </Tooltip>
+          </HStack>
+
+          <Box>
+            <Flex justify="space-between" mb={2}>
+              <Text color="gray.400">
+                Joueurs : {game.players.current}/{game.players.max}
+              </Text>
+              {playersNeeded > 0 && (
+                <Text color="orange.300">
+                  {playersNeeded} joueur{playersNeeded > 1 ? 's' : ''} manquant{playersNeeded > 1 ? 's' : ''}
+                </Text>
+              )}
+            </Flex>
+            <Progress 
+              value={(game.players.current / game.players.max) * 100}
+              colorScheme={game.type === 'free' ? 'green' : 'purple'}
+              borderRadius="full"
+              size="sm"
+              bg="whiteAlpha.200"
+            />
+          </Box>
+
+          {game.rewards && (
+            <Box>
+              <Text fontSize="sm" color="gray.400" mb={2}>
+                Récompenses :
+              </Text>
+              <VStack align="start" spacing={1}>
+                {game.rewards.badge && (
+                  <HStack>
+                    <Icon as={FaMedal} color="yellow.400" />
+                    <Text fontSize="sm">{game.rewards.badge}</Text>
+                  </HStack>
+                )}
+                {game.rewards.trophy && (
+                  <HStack>
+                    <Icon as={FaTrophy} color="orange.400" />
+                    <Text fontSize="sm">{game.rewards.trophy}</Text>
+                  </HStack>
+                )}
+                {game.rewards.points && (
+                  <HStack>
+                    <Icon as={StarIcon} color="purple.400" />
+                    <Text fontSize="sm">{game.rewards.points}</Text>
+                  </HStack>
+                )}
+              </VStack>
+            </Box>
+          )}
+
+          <Button
+            onClick={() => {
+              if (!registeredGames.has(game.id)) {
+                handleRegister(game.id)
+              } else if (canGameStart(game)) {
+                handleStartGame(game.id)
+              }
+            }}
+            colorScheme={game.type === 'free' ? 'green' : 'purple'}
+            isDisabled={game.status === 'in_progress' || (registeredGames.has(game.id) && !canGameStart(game))}
+            size="lg"
+            _hover={{ transform: 'scale(1.02)' }}
+            transition="all 0.2s"
+          >
+            {getButtonText(game)}
+          </Button>
+        </VStack>
+      </MotionBox>
+    )
+  }
 
   return (
-    <Box minH="100vh" bg="gray.900" color="white" py={8}>
-      <Container maxW="container.xl">
+    <Box bg="gray.900" minH="100vh" color="white">
+      <Navbar />
+      <Container maxW="container.xl" pt="100px" pb={8}>
         <VStack spacing={8} align="stretch">
-          {/* En-tête */}
-          <Heading 
-            size="xl" 
-            bgGradient="linear(to-r, purple.400, pink.400)"
-            bgClip="text"
-          >
-            Parties Disponibles
-          </Heading>
-
-          {/* Filtres */}
+          {/* Search Bar */}
           <Box 
             bg="whiteAlpha.100" 
             p={6} 
             borderRadius="xl" 
             backdropFilter="blur(10px)"
           >
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              <InputGroup>
-                <InputLeftElement pointerEvents="none">
-                  <SearchIcon color="gray.400" />
-                </InputLeftElement>
-                <Input
-                  placeholder="Rechercher une partie..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  bg="whiteAlpha.100"
-                  border="none"
-                  _placeholder={{ color: 'gray.400' }}
-                  _focus={{ 
-                    outline: 'none',
-                    boxShadow: '0 0 0 2px purple.500',
-                    bg: 'whiteAlpha.200'
-                  }}
-                />
-              </InputGroup>
-              <Select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
+            <InputGroup>
+              <InputLeftElement pointerEvents="none">
+                <SearchIcon color="gray.400" />
+              </InputLeftElement>
+              <Input
+                placeholder="Rechercher une partie..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 bg="whiteAlpha.100"
                 border="none"
+                _placeholder={{ color: 'gray.400' }}
                 _focus={{ 
                   outline: 'none',
                   boxShadow: '0 0 0 2px purple.500',
                   bg: 'whiteAlpha.200'
                 }}
-              >
-                <option value="all">Tous les types</option>
-                <option value="free">Parties Gratuites</option>
-                <option value="cash">Cash Games</option>
-                <option value="classic">Parties Classiques</option>
-                <option value="pro">Tournois Pro</option>
-                <option value="elite">Tournois Élite</option>
-              </Select>
+              />
+            </InputGroup>
+          </Box>
+
+          {/* Free Games Section */}
+          <Box>
+            <Heading 
+              size="xl" 
+              mb={6}
+              bgGradient="linear(to-r, green.400, blue.400)"
+              bgClip="text"
+            >
+              Parties Gratuites - Devenez le Meilleur de France
+            </Heading>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+              {freeGames.map((game) => (
+                <GameCard key={game.id} game={game} />
+              ))}
             </SimpleGrid>
           </Box>
 
-          {/* Liste des parties */}
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-            {filteredGames.map((game) => {
-              const typeInfo = getGameTypeInfo(game.type)
-              const minRequired = game.players.min ? Math.ceil(game.players.min * 0.7) : game.players.max
-              const playersNeeded = minRequired ? minRequired - game.players.current : 0
-              
-              return (
-                <MotionBox
-                  key={game.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  p={6}
-                  borderRadius="xl"
-                  bg="whiteAlpha.100"
-                  backdropFilter="blur(10px)"
-                  borderWidth="1px"
-                  borderColor="whiteAlpha.200"
-                  _hover={{ 
-                    transform: 'translateY(-5px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <VStack align="stretch" spacing={4}>
-                    <Flex justify="space-between" align="center">
-                      <Tag size="lg" variant="subtle" colorScheme={game.type === 'free' ? 'green' : 'purple'}>
-                        <TagLeftIcon as={typeInfo.icon} />
-                        <TagLabel>{typeInfo.label}</TagLabel>
-                      </Tag>
-                      {game.prize && (
-                        <Tag size="lg" variant="subtle" colorScheme="yellow">
-                          <TagLeftIcon as={FaCoins} />
-                          <TagLabel>{game.prize}</TagLabel>
-                        </Tag>
-                      )}
-                      {game.rank && (
-                        <Tag size="lg" variant="subtle" colorScheme="blue">
-                          <TagLeftIcon as={StarIcon} />
-                          <TagLabel>{game.rank}</TagLabel>
-                        </Tag>
-                      )}
-                    </Flex>
-
-                    <Heading size="md">{game.name}</Heading>
-                    
-                    <HStack spacing={4}>
-                      <Tooltip label="Heure de début" placement="top">
-                        <Flex align="center" color="gray.400">
-                          <TimeIcon mr={2} />
-                          <Text>{game.startTime}</Text>
-                        </Flex>
-                      </Tooltip>
-                      <Tooltip label="Durée" placement="top">
-                        <Flex align="center" color="gray.400">
-                          <CalendarIcon mr={2} />
-                          <Text>{game.duration}</Text>
-                        </Flex>
-                      </Tooltip>
-                    </HStack>
-
-                    <Box>
-                      <Flex justify="space-between" mb={2}>
-                        <Text color="gray.400">
-                          Joueurs : {game.players.current}/{game.players.max}
-                        </Text>
-                        {playersNeeded > 0 && (
-                          <Text color="orange.300">
-                            {playersNeeded} joueur{playersNeeded > 1 ? 's' : ''} manquant{playersNeeded > 1 ? 's' : ''}
-                          </Text>
-                        )}
-                      </Flex>
-                      <Progress 
-                        value={(game.players.current / game.players.max) * 100}
-                        colorScheme={game.type === 'free' ? 'green' : 'purple'}
-                        borderRadius="full"
-                        size="sm"
-                        bg="whiteAlpha.200"
-                      />
-                    </Box>
-
-                    {game.rewards && (
-                      <Box>
-                        <Text fontSize="sm" color="gray.400" mb={2}>
-                          Récompenses :
-                        </Text>
-                        <VStack align="start" spacing={1}>
-                          {game.rewards.badge && (
-                            <HStack>
-                              <Icon as={FaMedal} color="yellow.400" />
-                              <Text fontSize="sm">{game.rewards.badge}</Text>
-                            </HStack>
-                          )}
-                          {game.rewards.trophy && (
-                            <HStack>
-                              <Icon as={FaTrophy} color="orange.400" />
-                              <Text fontSize="sm">{game.rewards.trophy}</Text>
-                            </HStack>
-                          )}
-                          {game.rewards.points && (
-                            <HStack>
-                              <Icon as={StarIcon} color="purple.400" />
-                              <Text fontSize="sm">{game.rewards.points}</Text>
-                            </HStack>
-                          )}
-                        </VStack>
-                      </Box>
-                    )}
-
-                    <Button
-                      onClick={() => {
-                        if (!registeredGames.has(game.id)) {
-                          handleRegister(game.id)
-                        } else if (canGameStart(game)) {
-                          handleStartGame(game.id)
-                        }
-                      }}
-                      colorScheme={game.type === 'free' ? 'green' : 'purple'}
-                      isDisabled={game.status === 'in_progress' || (registeredGames.has(game.id) && !canGameStart(game))}
-                      size="lg"
-                      _hover={{ transform: 'scale(1.02)' }}
-                      transition="all 0.2s"
-                    >
-                      {getButtonText(game)}
-                    </Button>
-                  </VStack>
-                </MotionBox>
-              )
-            })}
-          </SimpleGrid>
+          {/* Paid Games Section */}
+          <Box mt={12}>
+            <Heading 
+              size="xl" 
+              mb={6}
+              bgGradient="linear(to-r, yellow.400, purple.400)"
+              bgClip="text"
+            >
+              Parties Cash & Tournois - Gagnez de l'Argent
+            </Heading>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+              {paidGames.map((game) => (
+                <GameCard key={game.id} game={game} />
+              ))}
+            </SimpleGrid>
+          </Box>
         </VStack>
       </Container>
     </Box>
   )
-} 
+}

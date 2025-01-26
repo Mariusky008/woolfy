@@ -10,13 +10,22 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  preview: {
+    host: '0.0.0.0',
+    port: 5173
+  },
   server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        secure: false,
-      },
+    host: true,
+    port: 5173,
+    watch: {
+      usePolling: true
     },
+    proxy: {
+      '/api': 'http://localhost:3000',
+      '/socket.io': {
+        target: 'http://localhost:3000',
+        ws: true
+      }
+    }
   },
 })

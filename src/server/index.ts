@@ -4,21 +4,39 @@ import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import cors from 'cors';
 import path from 'path';
+import { createServer } from 'http';
 import { connectDB } from './config/db';
 import gameRoutes from './routes/gameRoutes';
 import authRoutes from './routes/authRoutes';
 import { GameService } from './services/GameService';
+import { NotificationService } from './services/NotificationService';
 
 const app = express();
+const httpServer = createServer(app);
 const isProduction = process.env.NODE_ENV === 'production';
-const clientUrl = isProduction ? 'https://woolfy.fr' : 'http://localhost:5173';
+const clientUrl = process.env.CLIENT_URL || (isProduction ? 'https://woolfy.fr' : 'http://localhost:5173');
+const allowedOrigins = isProduction 
+  ? ['https://woolfy.fr', 'https://www.woolfy.fr']
+  : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://192.168.1.219:5173'];
+
+// Initialize notification service
+const notificationService = new NotificationService(httpServer);
 
 // Middleware
 app.use(express.json());
 
 // CORS configuration
 app.use(cors({
-  origin: isProduction ? ['https://woolfy.fr', 'https://www.woolfy.fr'] : 'http://localhost:5173',
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || !isProduction) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -50,6 +68,9 @@ const sessionConfig = {
 app.set('trust proxy', 1);
 app.use(session(sessionConfig));
 
+// Initialize game service with notification service
+const gameService = new GameService(notificationService);
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/games', gameRoutes);
@@ -75,9 +96,6 @@ if (isProduction) {
   });
 }
 
-// Initialize game service
-const gameService = new GameService();
-
 // Connect to MongoDB and start server
 const port = process.env.PORT || 3000;
 
@@ -85,9 +103,12 @@ connectDB()
   .then(() => {
     console.log('MongoDB connected successfully');
     
-    app.listen(port, () => {
+    httpServer.listen({
+      port: port,
+      host: '0.0.0.0'
+    }, () => {
       console.log(`Server is running on port ${port} in ${process.env.NODE_ENV} mode`);
-      console.log(`CORS enabled for origin: ${clientUrl}`);
+      console.log(`CORS enabled for origin: ${allowedOrigins.join(', ')}`);
       gameService.start();
     });
   })

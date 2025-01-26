@@ -4,17 +4,33 @@
     {
       "src": "src/server/index.ts",
       "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/api/(.*)",
       "dest": "/src/server/index.ts"
+    },
+    {
+      "src": "/socket.io/(.*)",
+      "dest": "/src/server/index.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/$1"
     }
   ],
   "env": {
     "MONGODB_URI": "${MONGODB_URI}",
     "SESSION_SECRET": "${SESSION_SECRET}",
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "CLIENT_URL": "https://woolfy.fr"
   }
 } 

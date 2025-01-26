@@ -1,7 +1,16 @@
 import { Game, IGame } from '../models/Game';
 import { Request, Response } from 'express';
+import { NotificationService } from '../services/NotificationService';
+import { User } from '../models/User';
+import { Types } from 'mongoose';
 
 export class GameController {
+  private notificationService: NotificationService;
+
+  constructor(notificationService: NotificationService) {
+    this.notificationService = notificationService;
+  }
+
   // Récupérer toutes les parties disponibles
   async getAvailableGames(req: Request, res: Response) {
     try {
@@ -36,9 +45,30 @@ export class GameController {
         return res.status(400).json({ message: 'Game is full' });
       }
 
+      // Get user info for notification
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
       // Add player to game
       game.players.current += 1;
+      game.players.registered.push(new Types.ObjectId(userId));
       await game.save();
+
+      // Send notification
+      this.notificationService.notifyPlayerJoined(game, user.username);
+
+      // Check game type and start conditions
+      const minRequired = Math.ceil(game.players.min * 0.7);
+      const isScheduledGame = ['classic', 'pro', 'elite'].includes(game.type);
+      const isAutoStartGame = game.type === 'free' && game.startTime === 'auto';
+      const shouldStartNow = isAutoStartGame && !isScheduledGame && game.players.current >= minRequired;
+
+      if (shouldStartNow) {
+        this.notificationService.notifyGameStarting(game);
+        setTimeout(() => this.startGame(new Types.ObjectId(gameId)), 60000); // Start in 1 minute
+      }
 
       res.json({ message: 'Successfully registered to game' });
     } catch (error) {
@@ -55,13 +85,26 @@ export class GameController {
       for (const game of games) {
         const minRequired = Math.ceil(game.players.min * 0.7);
         const now = new Date();
-        const currentTime = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const currentHour = now.getHours();
+        const currentMinutes = now.getMinutes();
 
-        if (
-          (game.startTime.includes(':') && currentTime >= game.startTime && game.players.current >= minRequired) ||
-          (!game.startTime.includes(':') && game.players.current >= minRequired)
-        ) {
-          await this.startGame(game._id.toString());
+        // For scheduled games (classic, pro, elite), check if it's time to start
+        const isScheduledGame = ['classic', 'pro', 'elite'].includes(game.type);
+        if (isScheduledGame && game.startTime.includes(':')) {
+          const [scheduledHour, scheduledMinutes] = game.startTime.split(':').map(Number);
+          const isTimeToStart = currentHour === scheduledHour && 
+                              currentMinutes === scheduledMinutes && 
+                              game.players.current >= minRequired;
+          
+          if (isTimeToStart) {
+            this.notificationService.notifyGameStarting(game);
+            setTimeout(() => this.startGame(game._id), 60000);
+          }
+        }
+        // For auto-start games (free games), check if minimum players are reached
+        else if (game.type === 'free' && game.startTime === 'auto' && game.players.current >= minRequired) {
+          this.notificationService.notifyGameStarting(game);
+          setTimeout(() => this.startGame(game._id), 60000);
         }
       }
     } catch (error) {
@@ -70,13 +113,16 @@ export class GameController {
   }
 
   // Démarrer une partie
-  private async startGame(gameId: string) {
+  private async startGame(gameId: Types.ObjectId) {
     try {
       const game = await Game.findById(gameId);
       if (!game) return;
 
       game.status = 'in_progress';
       await game.save();
+
+      // Notify players that the game has started
+      this.notificationService.notifyGameStarted(game);
 
       // TODO: Implement role distribution and game start logic
       console.log(`Game ${gameId} started with ${game.players.current} players`);
