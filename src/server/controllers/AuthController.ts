@@ -147,12 +147,18 @@ export class AuthController {
   // Login user
   login = async (req: Request, res: Response) => {
     try {
-      console.log('Login attempt:', req.body);
+      console.log('=== Login Attempt Start ===');
+      console.log('Request headers:', req.headers);
+      console.log('Request body:', req.body);
+      console.log('Session before login:', req.session);
+      
       const { email, password } = req.body;
 
       // Validate input
       if (!email || !password) {
-        console.log('Missing credentials');
+        console.log('Login failed: Missing credentials');
+        console.log('Email provided:', !!email);
+        console.log('Password provided:', !!password);
         return res.status(400).json({
           success: false,
           message: 'Email et mot de passe requis'
@@ -161,9 +167,12 @@ export class AuthController {
 
       // Find user by email
       const user = await User.findOne({ email }).exec();
+      console.log('Database query completed');
       console.log('User found:', user ? 'yes' : 'no');
+      console.log('User ID if found:', user?._id);
 
       if (!user) {
+        console.log('Login failed: User not found');
         return res.status(401).json({ 
           success: false,
           message: 'Email ou mot de passe incorrect' 
@@ -172,9 +181,11 @@ export class AuthController {
 
       // Check password
       const isMatch = await user.comparePassword(password);
+      console.log('Password verification completed');
       console.log('Password match:', isMatch);
 
       if (!isMatch) {
+        console.log('Login failed: Password mismatch');
         return res.status(401).json({ 
           success: false,
           message: 'Email ou mot de passe incorrect' 
@@ -183,21 +194,30 @@ export class AuthController {
 
       // Set user session
       const userId = user._id?.toString();
+      console.log('User ID to be set in session:', userId);
+      
       if (!userId) {
-        console.log('No user ID');
+        console.log('Login failed: No user ID available');
         return res.status(500).json({
           success: false,
           message: 'Erreur lors de la connexion'
         });
       }
+
       req.session.userId = userId;
-      console.log('Session ID set:', userId);
+      console.log('Session after setting userId:', req.session);
 
       // Save session before sending response
       return new Promise<void>((resolve, reject) => {
+        console.log('Attempting to save session...');
         req.session.save((err) => {
           if (err) {
             console.error('Session save error:', err);
+            console.error('Session save error details:', {
+              name: err.name,
+              message: err.message,
+              stack: err.stack
+            });
             reject(err);
             return res.status(500).json({
               success: false,
@@ -206,7 +226,10 @@ export class AuthController {
           }
 
           const safeUser = this.sanitizeUser(user);
-          console.log('Login successful, sending response');
+          console.log('Session saved successfully');
+          console.log('Final session state:', req.session);
+          console.log('=== Login Attempt End - Success ===');
+          
           res.status(200).json({
             success: true,
             message: 'Connexion réussie',
@@ -217,7 +240,21 @@ export class AuthController {
       });
 
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('=== Login Attempt End - Error ===');
+      console.error('Login error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+        console.error('MongoDB specific error:', error);
+        return res.status(500).json({ 
+          success: false,
+          message: 'Erreur de connexion à la base de données'
+        });
+      }
+      
       return res.status(500).json({ 
         success: false,
         message: 'Erreur lors de la connexion',

@@ -4,6 +4,7 @@ import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import cors from 'cors';
 import path from 'path';
+import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { connectDB } from './config/db';
 import authRoutes from './routes/authRoutes';
@@ -24,28 +25,44 @@ const notificationService = new NotificationService(httpServer);
 
 // Middleware
 app.use(express.json());
+app.use(cookieParser());
 
 // CORS configuration
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    console.log('=== CORS Check ===');
+    console.log('Request origin:', origin);
+    console.log('Allowed origins:', allowedOrigins);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || !isProduction) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      console.log('No origin provided - allowing request');
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('Origin allowed:', origin);
       callback(null, true);
     } else {
+      console.log('Origin rejected:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Set-Cookie']
 }));
 
 // Handle preflight requests
 app.options('*', cors());
 
 // Session configuration
+console.log('=== Session Configuration ===');
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Production mode:', isProduction);
+console.log('MongoDB URI exists:', !!process.env.MONGODB_URI);
+console.log('Session secret exists:', !!process.env.SESSION_SECRET);
+
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
@@ -61,12 +78,35 @@ const sessionConfig = {
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24, // 1 day
     sameSite: isProduction ? ('none' as const) : ('lax' as const),
-    domain: isProduction ? '.woolfy.fr' : undefined
-  }
+    domain: isProduction ? '.woolfy.fr' : undefined,
+    path: '/'
+  },
+  name: 'woolfy.sid'
 };
+
+console.log('Session configuration:', {
+  ...sessionConfig,
+  secret: sessionConfig.secret ? '[SECRET]' : undefined,
+  store: sessionConfig.store ? '[STORE]' : undefined,
+  cookie: {
+    ...sessionConfig.cookie,
+    secure: sessionConfig.cookie.secure,
+    sameSite: sessionConfig.cookie.sameSite,
+    domain: sessionConfig.cookie.domain
+  }
+});
 
 app.set('trust proxy', 1);
 app.use(session(sessionConfig));
+
+// Add session debug middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log('=== Session Debug ===');
+  console.log('Session ID:', req.sessionID);
+  console.log('Session data:', req.session);
+  console.log('Cookies:', req.headers.cookie);
+  next();
+});
 
 // Initialize game service with notification service
 const gameService = new GameService(notificationService);
