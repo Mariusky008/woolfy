@@ -21,7 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await connectDB();
 
     // Handle login
-    if (req.method === 'POST' && req.url === '/api/auth/login') {
+    if (req.method === 'POST') {
       const { email, password } = req.body;
 
       // Validate input
@@ -133,10 +133,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Handle unknown routes
-    return res.status(404).json({
+    // Handle unknown methods
+    return res.status(405).json({
       success: false,
-      message: 'Route non trouvée'
+      message: 'Méthode non autorisée'
     });
 
   } catch (error: any) {
