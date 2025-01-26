@@ -23,31 +23,19 @@ const allowedOrigins = isProduction
 // Initialize notification service
 const notificationService = new NotificationService(httpServer);
 
-// Error handling for JSON parsing must be first
-app.use((req: Request, res: Response, next: NextFunction) => {
-  let data = '';
-  req.setEncoding('utf8');
-  req.on('data', (chunk) => {
-    data += chunk;
-  });
-  req.on('end', () => {
-    if (!data) {
-      next();
-      return;
-    }
+// Basic middleware
+app.use(express.json({
+  verify: (req, res, buf, encoding) => {
     try {
-      req.body = JSON.parse(data);
-      next();
-    } catch (e: any) {
-      console.error('JSON Parse Error:', e);
-      res.status(400).json({
-        success: false,
-        message: 'Format JSON invalide',
-        error: process.env.NODE_ENV === 'development' ? e.message : undefined
-      });
+      JSON.parse(buf.toString());
+    } catch (e) {
+      throw new Error('Invalid JSON');
     }
-  });
-});
+  },
+  limit: '10mb'
+}));
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
 // CORS configuration
 app.use(cors({
@@ -62,7 +50,7 @@ app.use(cors({
       return callback(null, true);
     }
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !isProduction) {
       console.log('Origin allowed:', origin);
       callback(null, true);
     } else {
@@ -77,10 +65,6 @@ app.use(cors({
 
 // Handle preflight requests
 app.options('*', cors());
-
-// Basic middleware
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
 
 // Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -185,17 +169,34 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     });
   }
 
+  // Handle CORS errors
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({
+      success: false,
+      message: 'Accès non autorisé',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+
   // Handle other errors
   if (res.headersSent) {
     return next(err);
   }
 
+  // Default error response
   res.status(500).json({ 
     success: false,
     message: 'Une erreur est survenue',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
+
+// Vercel-specific configuration
+if (process.env.VERCEL) {
+  console.log('Running on Vercel - applying specific configuration');
+  app.enable('trust proxy');
+  app.set('trust proxy', true);
+}
 
 // Connect to MongoDB and start server
 const port = process.env.PORT || 3000;
