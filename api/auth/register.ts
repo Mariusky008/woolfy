@@ -8,7 +8,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', 'https://woolfy.fr');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Content-Type', 'application/json');
 
   // Handle preflight request
   if (req.method === 'OPTIONS') {
@@ -22,6 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Handle registration
     if (req.method === 'POST') {
+      console.log('Received registration request:', req.body);
       const { username, email, password } = req.body;
 
       // Validate input

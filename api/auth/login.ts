@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectDB } from '../src/server/config/db';
-import { User, IUser } from '../src/server/models/User';
+import { connectDB } from '../../src/server/config/db';
+import { User, IUser } from '../../src/server/models/User';
 import { Types } from 'mongoose';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -8,7 +8,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', 'https://woolfy.fr');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Content-Type', 'application/json');
 
   // Handle preflight request
   if (req.method === 'OPTIONS') {
@@ -22,6 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Handle login
     if (req.method === 'POST') {
+      console.log('Received login request:', req.body);
       const { email, password } = req.body;
 
       // Validate input
@@ -65,70 +67,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           trophies: user.trophies,
           points: user.points,
           rank: user.rank
-        }
-      });
-    }
-
-    // Handle registration
-    if (req.method === 'POST' && req.url === '/api/auth/register') {
-      const { username, email, password } = req.body;
-
-      // Validate input
-      if (!username || !email || !password) {
-        return res.status(400).json({
-          success: false,
-          message: 'Tous les champs sont requis'
-        });
-      }
-
-      // Check if user exists
-      const existingUser = await User.findOne({
-        $or: [{ email }, { username }]
-      }).exec();
-
-      if (existingUser) {
-        if (existingUser.email === email) {
-          return res.status(400).json({
-            success: false,
-            message: 'Un compte existe déjà avec cet email'
-          });
-        } else {
-          return res.status(400).json({
-            success: false,
-            message: 'Ce nom d\'utilisateur est déjà pris'
-          });
-        }
-      }
-
-      // Create user
-      const user = new User({
-        username,
-        email,
-        password,
-        gamesPlayed: 0,
-        gamesWon: 0,
-        badges: [],
-        trophies: [],
-        points: 0,
-        rank: 'Louveteau'
-      });
-
-      const savedUser = await user.save() as IUser;
-
-      return res.status(201).json({
-        success: true,
-        message: 'Inscription réussie',
-        user: {
-          _id: (savedUser._id as Types.ObjectId).toString(),
-          username: savedUser.username,
-          email: savedUser.email,
-          createdAt: savedUser.createdAt,
-          gamesPlayed: savedUser.gamesPlayed,
-          gamesWon: savedUser.gamesWon,
-          badges: savedUser.badges,
-          trophies: savedUser.trophies,
-          points: savedUser.points,
-          rank: savedUser.rank
         }
       });
     }
