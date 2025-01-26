@@ -24,7 +24,20 @@ const allowedOrigins = isProduction
 const notificationService = new NotificationService(httpServer);
 
 // Middleware
-app.use(express.json());
+app.use(express.json({
+  verify: (req: Request, res: Response, buf: Buffer, encoding: BufferEncoding) => {
+    try {
+      JSON.parse(buf.toString(encoding));
+    } catch (e: any) {
+      res.status(400).json({ 
+        success: false,
+        message: 'Invalid JSON payload',
+        error: process.env.NODE_ENV === 'development' ? e.message : undefined
+      });
+      throw e;
+    }
+  }
+}));
 app.use(cookieParser());
 
 // CORS configuration
@@ -115,16 +128,6 @@ const gameService = new GameService(notificationService);
 app.use('/api/auth', authRoutes);
 app.use('/api/games', createGameRouter(notificationService));
 
-// Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
-    success: false,
-    message: 'Une erreur est survenue',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
-
 // Serve static files in production
 if (isProduction) {
   const distPath = path.join(__dirname, '../../dist');
@@ -135,6 +138,21 @@ if (isProduction) {
     res.sendFile(path.join(__dirname, '../../dist/index.html'));
   });
 }
+
+// Error handling middleware (must be after all routes)
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Global Error Handler:', err);
+  // Ensure we don't send headers if they're already sent
+  if (res.headersSent) {
+    return next(err);
+  }
+  // Always return JSON
+  res.status(500).json({ 
+    success: false,
+    message: 'Une erreur est survenue',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
 
 // Connect to MongoDB and start server
 const port = process.env.PORT || 3000;
