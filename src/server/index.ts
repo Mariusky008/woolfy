@@ -23,6 +23,32 @@ const allowedOrigins = isProduction
 // Initialize notification service
 const notificationService = new NotificationService(httpServer);
 
+// Error handling for JSON parsing must be first
+app.use((req: Request, res: Response, next: NextFunction) => {
+  let data = '';
+  req.setEncoding('utf8');
+  req.on('data', (chunk) => {
+    data += chunk;
+  });
+  req.on('end', () => {
+    if (!data) {
+      next();
+      return;
+    }
+    try {
+      req.body = JSON.parse(data);
+      next();
+    } catch (e: any) {
+      console.error('JSON Parse Error:', e);
+      res.status(400).json({
+        success: false,
+        message: 'Format JSON invalide',
+        error: process.env.NODE_ENV === 'development' ? e.message : undefined
+      });
+    }
+  });
+});
+
 // CORS configuration
 app.use(cors({
   origin: function(origin, callback) {
@@ -53,7 +79,7 @@ app.use(cors({
 app.options('*', cors());
 
 // Basic middleware
-app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 // Request logging middleware
@@ -61,28 +87,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   console.log('=== Incoming Request ===');
   console.log('Method:', req.method);
   console.log('URL:', req.url);
-  console.log('Headers:', req.headers);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
   if (req.method !== 'GET') {
-    console.log('Body:', req.body);
+    console.log('Raw Body:', req.body);
+    console.log('Content-Type:', req.headers['content-type']);
   }
   next();
-});
-
-// JSON parsing error handler (must be after express.json but before routes)
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  if (err instanceof SyntaxError && 'body' in err) {
-    console.error('JSON Parsing Error:', {
-      error: err,
-      body: req.body,
-      headers: req.headers
-    });
-    return res.status(400).json({
-      success: false,
-      message: 'Format JSON invalide',
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-  }
-  next(err);
 });
 
 // Session configuration
@@ -157,12 +167,29 @@ if (isProduction) {
 
 // Error handling middleware (must be after all routes)
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Global Error Handler:', err);
-  // Ensure we don't send headers if they're already sent
+  console.error('=== Error Handler ===');
+  console.error('Error type:', err.constructor.name);
+  console.error('Error message:', err.message);
+  console.error('Error stack:', err.stack);
+  console.error('Request URL:', req.url);
+  console.error('Request method:', req.method);
+  console.error('Request headers:', JSON.stringify(req.headers, null, 2));
+  console.error('Request body:', req.body);
+
+  // Handle JSON parsing errors
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({
+      success: false,
+      message: 'Format JSON invalide',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+
+  // Handle other errors
   if (res.headersSent) {
     return next(err);
   }
-  // Always return JSON
+
   res.status(500).json({ 
     success: false,
     message: 'Une erreur est survenue',
