@@ -1,12 +1,12 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth/:path*"
     },
     {
       "source": "/(.*)",
-      "destination": "/"
+      "destination": "/index.html"
     }
   ],
   "headers": [
@@ -19,5 +19,11 @@
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/auth/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
 } 
