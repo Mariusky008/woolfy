@@ -61,7 +61,10 @@ export const AuthPage = () => {
     setIsLoading(true)
 
     try {
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register'
+      const baseUrl = import.meta.env.PROD 
+        ? import.meta.env.VITE_PROD_API_URL 
+        : import.meta.env.VITE_API_URL
+      const endpoint = isLogin ? `${baseUrl}/api/auth/login` : `${baseUrl}/api/auth/register`
       console.log('Sending request to:', endpoint)
       const response = await fetch(endpoint, {
         method: 'POST',
