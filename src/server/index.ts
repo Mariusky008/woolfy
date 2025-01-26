@@ -23,23 +23,6 @@ const allowedOrigins = isProduction
 // Initialize notification service
 const notificationService = new NotificationService(httpServer);
 
-// Middleware
-app.use(express.json());
-app.use(cookieParser());
-
-// Add JSON parsing error handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  if (err instanceof SyntaxError && 'body' in err) {
-    console.error('JSON Parsing Error:', err);
-    return res.status(400).json({
-      success: false,
-      message: 'Format JSON invalide',
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-  }
-  next(err);
-});
-
 // CORS configuration
 app.use(cors({
   origin: function(origin, callback) {
@@ -68,6 +51,39 @@ app.use(cors({
 
 // Handle preflight requests
 app.options('*', cors());
+
+// Basic middleware
+app.use(express.json());
+app.use(cookieParser());
+
+// Request logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log('=== Incoming Request ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', req.headers);
+  if (req.method !== 'GET') {
+    console.log('Body:', req.body);
+  }
+  next();
+});
+
+// JSON parsing error handler (must be after express.json but before routes)
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof SyntaxError && 'body' in err) {
+    console.error('JSON Parsing Error:', {
+      error: err,
+      body: req.body,
+      headers: req.headers
+    });
+    return res.status(400).json({
+      success: false,
+      message: 'Format JSON invalide',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+  next(err);
+});
 
 // Session configuration
 console.log('=== Session Configuration ===');
