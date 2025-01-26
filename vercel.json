@@ -15,6 +15,10 @@
   ],
   "routes": [
     {
+      "src": "/api/auth/(.*)",
+      "dest": "/api/auth/$1"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/src/server/index.ts"
     },
@@ -23,8 +27,11 @@
       "dest": "/src/server/index.ts"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/dist/$1"
+      "dest": "/index.html"
     }
   ],
   "env": {
@@ -33,16 +40,6 @@
     "NODE_ENV": "production",
     "CLIENT_URL": "https://woolfy.fr"
   },
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
   "headers": [
     {
       "source": "/api/(.*)",
