@@ -3,17 +3,13 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IBadge extends Document {
   name: string;
   description: string;
-  type: 'badge' | 'trophy';
-  category: 'game_type' | 'achievement' | 'special';
-  imageUrl?: string;
+  icon: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
   requirements: {
-    gameType?: string;
-    minGamesPlayed?: number;
-    minGamesWon?: number;
-    minPoints?: number;
-    specialCondition?: string;
+    type: 'games_played' | 'win_rate' | 'kills' | 'accuracy' | 'special_actions';
+    value: number;
   };
-  pointsValue: number;
+  category: 'achievement' | 'role' | 'season' | 'event';
 }
 
 const BadgeSchema = new Schema<IBadge>({
@@ -26,28 +22,29 @@ const BadgeSchema = new Schema<IBadge>({
     type: String,
     required: true
   },
-  type: {
+  icon: {
     type: String,
-    enum: ['badge', 'trophy'],
     required: true
+  },
+  rarity: {
+    type: String,
+    enum: ['common', 'rare', 'epic', 'legendary'],
+    required: true
+  },
+  requirements: {
+    type: {
+      type: String,
+      enum: ['games_played', 'win_rate', 'kills', 'accuracy', 'special_actions'],
+      required: true
+    },
+    value: {
+      type: Number,
+      required: true
+    }
   },
   category: {
     type: String,
-    enum: ['game_type', 'achievement', 'special'],
-    required: true
-  },
-  imageUrl: {
-    type: String
-  },
-  requirements: {
-    gameType: String,
-    minGamesPlayed: Number,
-    minGamesWon: Number,
-    minPoints: Number,
-    specialCondition: String
-  },
-  pointsValue: {
-    type: Number,
+    enum: ['achievement', 'role', 'season', 'event'],
     required: true
   }
 });

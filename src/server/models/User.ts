@@ -5,13 +5,22 @@ export interface IUser extends Document {
   username: string;
   email: string;
   password: string;
+  avatar?: string;
+  bio?: string;
   createdAt: Date;
+  lastActive: Date;
+  status: 'online' | 'offline' | 'in_game';
   gamesPlayed: number;
   gamesWon: number;
+  correctAccusations: number;
+  totalAccusations: number;
+  totalKills: number;
+  favoriteRole: string;
   badges: string[];
   trophies: string[];
   points: number;
   rank: string;
+  gameHistory: mongoose.Types.ObjectId[];
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -32,9 +41,25 @@ const UserSchema = new Schema<IUser>({
     required: true,
     minlength: 6
   },
+  avatar: {
+    type: String,
+  },
+  bio: {
+    type: String,
+    maxlength: 500
+  },
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  lastActive: {
+    type: Date,
+    default: Date.now
+  },
+  status: {
+    type: String,
+    enum: ['online', 'offline', 'in_game'],
+    default: 'offline'
   },
   gamesPlayed: {
     type: Number,
@@ -43,6 +68,22 @@ const UserSchema = new Schema<IUser>({
   gamesWon: {
     type: Number,
     default: 0
+  },
+  correctAccusations: {
+    type: Number,
+    default: 0
+  },
+  totalAccusations: {
+    type: Number,
+    default: 0
+  },
+  totalKills: {
+    type: Number,
+    default: 0
+  },
+  favoriteRole: {
+    type: String,
+    default: 'Villageois'
   },
   badges: {
     type: [String],
@@ -59,7 +100,11 @@ const UserSchema = new Schema<IUser>({
   rank: {
     type: String,
     default: 'Louveteau'
-  }
+  },
+  gameHistory: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Game'
+  }]
 });
 
 // Hash password before saving
