@@ -25,14 +25,14 @@ export class GameController {
   // Inscription à une partie
   async registerToGame(req: Request, res: Response) {
     try {
-      const { gameId } = req.params;
+      const gameId = req.params.gameId;
       const userId = req.session.userId;
 
-      if (!userId) {
+      if (!userId || typeof userId !== 'string') {
         return res.status(401).json({ message: 'Authentication required' });
       }
 
-      const game = await Game.findById(gameId);
+      const game = await Game.findById(new Types.ObjectId(gameId));
       if (!game) {
         return res.status(404).json({ message: 'Game not found' });
       }
@@ -46,7 +46,7 @@ export class GameController {
       }
 
       // Get user info for notification
-      const user = await User.findById(userId);
+      const user = await User.findById(new Types.ObjectId(userId));
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
@@ -60,14 +60,15 @@ export class GameController {
       this.notificationService.notifyPlayerJoined(game, user.username);
 
       // Check game type and start conditions
-      const minRequired = Math.ceil(game.players.min * 0.7);
+      const minRequired = game.minPlayersToStart;
       const isScheduledGame = ['classic', 'pro', 'elite'].includes(game.type);
       const isAutoStartGame = game.type === 'free' && game.startTime === 'auto';
       const shouldStartNow = isAutoStartGame && !isScheduledGame && game.players.current >= minRequired;
 
       if (shouldStartNow) {
         this.notificationService.notifyGameStarting(game);
-        setTimeout(() => this.startGame(new Types.ObjectId(gameId)), 60000); // Start in 1 minute
+        const gameIdString = game._id.toString();
+        setTimeout(() => this.startGame(gameIdString), 60000); // Start in 1 minute
       }
 
       res.json({ message: 'Successfully registered to game' });
@@ -83,7 +84,7 @@ export class GameController {
       const games = await Game.find({ status: 'waiting' });
       
       for (const game of games) {
-        const minRequired = Math.ceil(game.players.min * 0.7);
+        const minRequired = game.minPlayersToStart;
         const now = new Date();
         const currentHour = now.getHours();
         const currentMinutes = now.getMinutes();
@@ -98,13 +99,15 @@ export class GameController {
           
           if (isTimeToStart) {
             this.notificationService.notifyGameStarting(game);
-            setTimeout(() => this.startGame(game._id), 60000);
+            const gameIdString = game._id.toString();
+            setTimeout(() => this.startGame(gameIdString), 60000);
           }
         }
         // For auto-start games (free games), check if minimum players are reached
         else if (game.type === 'free' && game.startTime === 'auto' && game.players.current >= minRequired) {
           this.notificationService.notifyGameStarting(game);
-          setTimeout(() => this.startGame(game._id), 60000);
+          const gameIdString = game._id.toString();
+          setTimeout(() => this.startGame(gameIdString), 60000);
         }
       }
     } catch (error) {
@@ -113,9 +116,9 @@ export class GameController {
   }
 
   // Démarrer une partie
-  private async startGame(gameId: Types.ObjectId) {
+  private async startGame(gameId: string) {
     try {
-      const game = await Game.findById(gameId);
+      const game = await Game.findById(new Types.ObjectId(gameId));
       if (!game) return;
 
       game.status = 'in_progress';
@@ -135,7 +138,7 @@ export class GameController {
   private async rescheduleGame(gameId: string) {
     try {
       const game = await Game.findById(gameId);
-      if (!game) return;
+      if (!game || !game.scheduledFor) return;
 
       // Ajouter 24h à la date prévue
       const newDate = new Date(game.scheduledFor);
@@ -254,33 +257,53 @@ export class GameController {
 
   // Méthode utilitaire pour créer une partie
   private async createGame(gameData: Partial<IGame>) {
-    const existingGame = await Game.findOne({
-      name: gameData.name,
-      status: 'waiting'
-    });
+    try {
+      const existingGame = await Game.findOne({
+        name: gameData.name,
+        status: 'waiting'
+      });
 
-    if (!existingGame) {
-      await Game.create(gameData);
+      if (!existingGame) {
+        const minPlayersToStart = Math.ceil((gameData.players?.min || 0) * 0.7);
+        await Game.create({
+          ...gameData,
+          minPlayersToStart,
+          status: 'waiting',
+          createdAt: new Date()
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création de la partie:', error);
+      throw error;
     }
   }
 
   // Méthode utilitaire pour créer une partie programmée
   private async createScheduledGame(gameData: Partial<IGame>, hour: number) {
-    const today = new Date();
-    today.setHours(hour, 0, 0, 0);
+    try {
+      const today = new Date();
+      today.setHours(hour, 0, 0, 0);
 
-    const existingGame = await Game.findOne({
-      name: gameData.name,
-      status: 'waiting',
-      scheduledFor: today
-    });
-
-    if (!existingGame) {
-      await Game.create({
-        ...gameData,
-        scheduledFor: today,
-        autoStart: false
+      const existingGame = await Game.findOne({
+        name: gameData.name,
+        status: 'waiting',
+        scheduledFor: today
       });
+
+      if (!existingGame) {
+        const minPlayersToStart = Math.ceil((gameData.players?.min || 0) * 0.7);
+        await Game.create({
+          ...gameData,
+          minPlayersToStart,
+          scheduledFor: today,
+          autoStart: false,
+          status: 'waiting',
+          createdAt: new Date()
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création de la partie programmée:', error);
+      throw error;
     }
   }
 } 

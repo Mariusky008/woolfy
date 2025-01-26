@@ -6,8 +6,8 @@ import cors from 'cors';
 import path from 'path';
 import { createServer } from 'http';
 import { connectDB } from './config/db';
-import gameRoutes from './routes/gameRoutes';
 import authRoutes from './routes/authRoutes';
+import { createGameRouter } from './routes/gameRoutes';
 import { GameService } from './services/GameService';
 import { NotificationService } from './services/NotificationService';
 
@@ -73,7 +73,7 @@ const gameService = new GameService(notificationService);
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/games', gameRoutes);
+app.use('/api/games', createGameRouter(notificationService));
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

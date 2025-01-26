@@ -1,13 +1,18 @@
 import { Router } from 'express';
 import { GameController } from '../controllers/GameController';
+import { NotificationService } from '../services/NotificationService';
 
-const router = Router();
-const gameController = new GameController();
+export function createGameRouter(notificationService: NotificationService) {
+  const router = Router();
+  const gameController = new GameController(notificationService);
 
-// Public routes
-router.get('/', gameController.getAvailableGames);
+  // Public routes
+  router.get('/', gameController.getAvailableGames.bind(gameController));
 
-// Protected routes
-router.post('/:gameId/register', gameController.registerToGame);
+  // Protected routes
+  router.post('/:gameId/register', gameController.registerToGame.bind(gameController));
 
-export default router; 
+  return router;
+}
+
+export default createGameRouter; 

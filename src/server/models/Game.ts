@@ -1,13 +1,14 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IGame extends Document {
+  _id: Types.ObjectId;
   name: string;
   type: 'free' | 'cash' | 'classic' | 'pro' | 'elite';
   players: {
     current: number;
     max: number;
     min: number;
-    registered: mongoose.Types.ObjectId[];
+    registered: Types.ObjectId[];
   };
   startTime: string | 'auto';
   duration: string;
