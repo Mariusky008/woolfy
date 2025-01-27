@@ -4,9 +4,13 @@ import { User, IUser } from '../../src/server/models/User';
 import { Types } from 'mongoose';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Get the origin from the request headers
+  const origin = req.headers.origin || '';
+  const allowedOrigins = ['https://www.woolfy.fr', 'https://woolfy.fr'];
+
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', 'https://www.woolfy.fr');
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigins.includes(origin) ? origin : allowedOrigins[0]);
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.setHeader('Content-Type', 'application/json');
