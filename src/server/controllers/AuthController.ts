@@ -82,8 +82,12 @@ export class AuthController {
 
       const savedUser = await user.save();
 
-      // Set user session
-      req.session.userId = savedUser._id.toString();
+      // Set user session with type checking
+      if (req.session && savedUser._id) {
+        req.session.userId = savedUser._id.toString();
+      } else {
+        throw new Error('Session or user ID not available');
+      }
 
       // Save session before sending response
       return new Promise<void>((resolve, reject) => {
