@@ -26,6 +26,24 @@
       "dest": "/api/auth/$1"
     },
     {
+      "src": "/assets/(.*)",
+      "headers": { "cache-control": "public, max-age=31536000, immutable" },
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/(.*)\\.js",
+      "headers": { "content-type": "application/javascript" },
+      "dest": "/$1.js"
+    },
+    {
+      "src": "/(.*)\\.css",
+      "headers": { "content-type": "text/css" },
+      "dest": "/$1.css"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
