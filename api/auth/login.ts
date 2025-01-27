@@ -2,48 +2,18 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { connectDB } from '../../src/server/config/db';
 import { User, IUser } from '../../src/server/models/User';
 import { Types } from 'mongoose';
-import Cors from 'cors';
-
-// Initialize CORS middleware
-const cors = Cors({
-  origin: function (origin: string | undefined, callback: (err: Error | null, origin?: boolean | string) => void) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'https://www.woolfy.fr',
-      'https://woolfy.fr',
-      'https://woolfy.vercel.app',
-      'http://localhost:5173'
-    ];
-
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, origin);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 204
-});
-
-// Helper method to run middleware
-function runMiddleware(req: VercelRequest, res: VercelResponse, fn: Function) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result: any) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
-  });
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Run the CORS middleware
-  await runMiddleware(req, res, cors);
+  // Set basic CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
 
   try {
     // Connect to MongoDB
