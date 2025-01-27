@@ -2,6 +2,7 @@ import { Server as SocketServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import { IGame } from '../models/Game';
 import { Types } from 'mongoose';
+import { getSocketService } from './SocketService';
 
 export class NotificationService {
   private io: SocketServer;
@@ -124,5 +125,10 @@ export class NotificationService {
       status: game.status,
       currentPlayers: game.players.current
     });
+  }
+
+  notifyUser(userId: string, event: string, data: any) {
+    const socketService = getSocketService();
+    socketService.notifyUser(userId, event, data);
   }
 } 

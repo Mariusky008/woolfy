@@ -99,7 +99,7 @@ export class ProfileController {
       // Calculer les statistiques supplémentaires pour chaque rôle
       const enhancedStats = roleStats.map(stat => ({
         ...stat,
-        winRate: stat.gamesPlayed > 0 ? (stat.wins / stat.gamesPlayed) * 100 : 0,
+        winRate: stat.gamesPlayed > 0 ? (stat.gamesWon / stat.gamesPlayed) * 100 : 0,
         killsPerGame: stat.gamesPlayed > 0 && stat.kills ? stat.kills / stat.gamesPlayed : 0,
         specialActionsPerGame: stat.gamesPlayed > 0 && stat.specialActions ? stat.specialActions / stat.gamesPlayed : 0
       }));

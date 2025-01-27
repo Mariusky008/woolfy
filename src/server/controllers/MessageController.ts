@@ -210,6 +210,7 @@ export class MessageController {
       await message.save()
 
       // Notifier l'expéditeur de la réponse via Socket.IO
+      const socketService = getSocketService()
       socketService.notifyUser(message.from.toString(), 'game_invite_response', {
         messageId,
         accepted
