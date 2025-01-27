@@ -6,10 +6,27 @@ import Cors from 'cors';
 
 // Initialize CORS middleware
 const cors = Cors({
-  origin: true, // Allow all origins temporarily
+  origin: function (origin: string | undefined, callback: (err: Error | null, origin?: boolean | string) => void) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'https://www.woolfy.fr',
+      'https://woolfy.fr',
+      'https://woolfy.vercel.app',
+      'http://localhost:5173'
+    ];
+
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, origin);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204
 });
 
 // Helper method to run middleware
