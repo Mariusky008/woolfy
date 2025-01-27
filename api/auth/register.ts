@@ -6,9 +6,10 @@ import { Types } from 'mongoose';
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS with credentials
   const origin = req.headers.origin;
+  const allowedOrigins = ['https://www.woolfy.fr', 'https://woolfy.vercel.app'];
   
-  // Only allow requests from our domain
-  if (origin === 'https://www.woolfy.fr') {
+  // Allow requests from our domains
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
