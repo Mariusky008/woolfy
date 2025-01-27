@@ -4,35 +4,13 @@ import { User, IUser } from '../../src/server/models/User';
 import { Types } from 'mongoose';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log('Received request with headers:', req.headers);
-  console.log('Request method:', req.method);
-  console.log('Request origin:', req.headers.origin);
-
-  // Enable CORS
-  const origin = req.headers.origin;
-  console.log('Setting CORS headers for origin:', origin);
-
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', origin || '');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request');
-    res.status(204).end();
-    return;
-  }
-
   try {
     // Connect to MongoDB
     await connectDB();
 
     // Handle registration
     if (req.method === 'POST') {
-      console.log('Processing registration request');
       const { username, email, password } = req.body;
-      console.log('Registration attempt for email:', email);
 
       // Validate input
       if (!username || !email || !password) {
