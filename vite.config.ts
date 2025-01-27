@@ -15,15 +15,20 @@ export default defineConfig({
     port: 5173
   },
   server: {
-    host: true,
+    host: '0.0.0.0',
     port: 5173,
     watch: {
       usePolling: true
     },
     proxy: {
-      '/api': 'http://localhost:3000',
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false
+      },
       '/socket.io': {
         target: 'http://localhost:3000',
+        changeOrigin: true,
         ws: true
       }
     }
