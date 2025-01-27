@@ -23,7 +23,7 @@ type SafeUser = {
 };
 
 export class AuthController {
-  private sanitizeUser(user: IUser): SafeUser {
+  public sanitizeUser(user: IUser): SafeUser {
     const { _id, username, email, createdAt, gamesPlayed, gamesWon, badges, trophies, points, rank } = user;
     return {
       _id: (_id as Types.ObjectId).toString(),
@@ -335,4 +335,35 @@ export class AuthController {
       });
     }
   }
-} 
+}
+
+// Standalone login function for API routes
+export const loginUser = async (email: string, password: string) => {
+  if (!email || !password) {
+    throw new Error('Email et mot de passe requis');
+  }
+
+  // Find user by email
+  const user = await User.findOne({ email }).exec();
+
+  if (!user) {
+    throw new Error('Email ou mot de passe incorrect');
+  }
+
+  // Check password
+  const isMatch = await user.comparePassword(password);
+
+  if (!isMatch) {
+    throw new Error('Email ou mot de passe incorrect');
+  }
+
+  // Return safe user data
+  const authController = new AuthController();
+  const safeUser = authController.sanitizeUser(user);
+  
+  return {
+    success: true,
+    message: 'Connexion réussie',
+    user: safeUser
+  };
+}; 
