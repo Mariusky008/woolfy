@@ -2,14 +2,20 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { connectDB } from '../../src/server/config/db';
 import { User, IUser } from '../../src/server/models/User';
 import { Types } from 'mongoose';
-import cors from 'micro-cors';
 
-const corsMiddleware = cors({
-  allowCredentials: true,
-  origin: true // This will reflect the request origin
-});
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', 'https://woolfy.vercel.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
 
-const handler = async (req: VercelRequest, res: VercelResponse) => {
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   try {
     // Connect to MongoDB
     await connectDB();
@@ -78,6 +84,4 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-}
-
-export default corsMiddleware(handler); 
+} 
