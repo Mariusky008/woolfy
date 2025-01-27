@@ -2,26 +2,14 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { connectDB } from '../../src/server/config/db';
 import { User, IUser } from '../../src/server/models/User';
 import { Types } from 'mongoose';
+import cors from 'micro-cors';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Enable CORS with credentials
-  const origin = req.headers.origin;
-  const allowedOrigins = ['https://www.woolfy.fr', 'https://woolfy.vercel.app'];
-  
-  // Allow requests from our domains
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  }
+const corsMiddleware = cors({
+  allowCredentials: true,
+  origin: true // This will reflect the request origin
+});
 
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
+const handler = async (req: VercelRequest, res: VercelResponse) => {
   try {
     // Connect to MongoDB
     await connectDB();
@@ -90,4 +78,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-} 
+}
+
+export default corsMiddleware(handler); 

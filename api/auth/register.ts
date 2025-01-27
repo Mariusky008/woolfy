@@ -2,8 +2,14 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { connectDB } from '../../src/server/config/db';
 import { User, IUser } from '../../src/server/models/User';
 import { Types } from 'mongoose';
+import cors from 'micro-cors';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+const corsMiddleware = cors({
+  allowCredentials: true,
+  origin: true // This will reflect the request origin
+});
+
+const handler = async (req: VercelRequest, res: VercelResponse) => {
   // Enable CORS with credentials
   const origin = req.headers.origin;
   const allowedOrigins = ['https://www.woolfy.fr', 'https://woolfy.vercel.app'];
@@ -105,4 +111,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-} 
+}
+
+export default corsMiddleware(handler); 
