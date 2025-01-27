@@ -16,17 +16,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "headers": {
-        "Access-Control-Allow-Origin": "https://www.woolfy.fr",
-        "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Allow-Methods": "GET,OPTIONS,PATCH,DELETE,POST,PUT",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With"
-      },
-      "continue": true
-    },
-    {
-      "src": "/api/auth/(.*)",
-      "dest": "/api/auth/$1"
+      "dest": "/api/$1"
     },
     {
       "handle": "filesystem"
