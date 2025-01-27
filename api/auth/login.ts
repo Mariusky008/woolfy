@@ -2,8 +2,32 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { connectDB } from '../../src/server/config/db';
 import { User, IUser } from '../../src/server/models/User';
 import { Types } from 'mongoose';
+import Cors from 'cors';
+
+// Initialize CORS middleware
+const cors = Cors({
+  origin: true, // Allow all origins temporarily
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+});
+
+// Helper method to run middleware
+function runMiddleware(req: VercelRequest, res: VercelResponse, fn: Function) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result: any) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Run the CORS middleware
+  await runMiddleware(req, res, cors);
+
   try {
     // Connect to MongoDB
     await connectDB();
