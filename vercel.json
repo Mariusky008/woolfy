@@ -13,10 +13,25 @@
       }
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/auth/:path*",
-      "destination": "/api/auth/:path*"
+      "src": "/api/auth/(.*)",
+      "dest": "/api/auth/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "https://woolfy.vercel.app" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-Requested-With" }
+      ]
     }
   ],
   "env": {
