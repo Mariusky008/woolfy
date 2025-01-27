@@ -4,11 +4,16 @@ import { User, IUser } from '../../src/server/models/User';
 import { Types } from 'mongoose';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', '*');
-  res.setHeader('Access-Control-Allow-Headers', '*');
+  // Enable CORS with credentials
+  const origin = req.headers.origin;
+  
+  // Only allow requests from our domain
+  if (origin === 'https://www.woolfy.fr') {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  }
 
   // Handle preflight request
   if (req.method === 'OPTIONS') {
