@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Box, useToast } from '@chakra-ui/react'
 import { HomePage } from './pages/Home/Home'
 import { AuthPage } from './pages/Auth/Auth'
@@ -7,9 +7,28 @@ import { GamesPage } from './pages/Games/Games'
 import { ProfilePage } from './pages/Profile/ProfilePage'
 import { RankingPage } from './pages/Ranking/RankingPage'
 import { Navbar } from './components/Navbar'
+import { useAuthStore } from './stores/authStore'
+
+interface ProtectedRouteProps {
+  children: React.ReactNode
+}
+
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const location = useLocation()
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" state={{ from: location }} replace />
+  }
+
+  return <>{children}</>
+}
 
 const App = () => {
   const toast = useToast()
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const location = useLocation()
+  const isPublicRoute = location.pathname === '/' || location.pathname === '/auth'
 
   useEffect(() => {
     // Log environment information
@@ -36,21 +55,43 @@ const App = () => {
   }, [toast])
 
   return (
+    <Box minH="100vh" bg="gray.900">
+      {isAuthenticated && !isPublicRoute && <Navbar />}
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/games" element={
+          <ProtectedRoute>
+            <GamesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/ranking" element={
+          <ProtectedRoute>
+            <RankingPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/game" element={
+          <ProtectedRoute>
+            <div>Game In Progress</div>
+          </ProtectedRoute>
+        } />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Box>
+  )
+}
+
+const AppWrapper = () => {
+  return (
     <Router>
-      <Box minH="100vh" bg="gray.900">
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/games" element={<GamesPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/ranking" element={<RankingPage />} />
-          <Route path="/game" element={<div>Game In Progress</div>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Box>
+      <App />
     </Router>
   )
 }
 
-export default App
+export default AppWrapper
