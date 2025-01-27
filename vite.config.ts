@@ -35,10 +35,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
-    rollupOptions: {
-      external: ['axios']
-    }
+    sourcemap: true
   },
   define: {
     'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL),
