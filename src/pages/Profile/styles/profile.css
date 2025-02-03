@@ -1,0 +1,267 @@
+.profile-page {
+  background: linear-gradient(to bottom, #0a0a0f, #1a1a2f);
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  color: var(--color-text);
+}
+
+.cyberpunk-grid {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(90deg, rgba(0, 255, 242, 0.1) 1px, transparent 1px) 0 0 / 50px 50px,
+    linear-gradient(rgba(0, 255, 242, 0.1) 1px, transparent 1px) 0 0 / 50px 50px;
+  transform: perspective(1000px) rotateX(60deg);
+  transform-origin: bottom;
+  animation: gridPulse 4s ease-in-out infinite;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.profile-container {
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(10px);
+}
+
+.profile-header {
+  background: rgba(10, 10, 15, 0.95);
+  border: 2px solid var(--color-neon);
+  border-radius: 15px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 0 30px rgba(0, 255, 242, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent 65%, rgba(0, 255, 242, 0.1) 75%, transparent 85%);
+  animation: scanline 2s linear infinite;
+}
+
+.profile-header .avatar {
+  border: 3px solid var(--color-neon);
+  box-shadow: 0 0 20px var(--color-neon);
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.stat-card {
+  background: rgba(10, 10, 15, 0.95);
+  border: 2px solid var(--color-neon);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(0, 255, 242, 0.1),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: shine 3s infinite;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 20px rgba(0, 255, 242, 0.3);
+}
+
+.badge-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.badge {
+  background: rgba(10, 10, 15, 0.95);
+  border: 2px solid var(--color-neon);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(0, 255, 242, 0.3);
+}
+
+.game-history {
+  background: rgba(10, 10, 15, 0.95);
+  border: 2px solid var(--color-neon);
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.game-item {
+  border: 1px solid rgba(0, 255, 242, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.game-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 255, 242, 0.1),
+    transparent
+  );
+  animation: scan 2s infinite;
+}
+
+.game-item:hover {
+  background: rgba(0, 255, 242, 0.1);
+  transform: translateX(5px);
+}
+
+.role-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.role-card {
+  background: rgba(10, 10, 15, 0.95);
+  border: 2px solid var(--color-neon);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.role-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(0, 255, 242, 0.3);
+}
+
+.chat-button {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--color-neon);
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.chat-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 30px var(--color-neon);
+}
+
+@keyframes gridPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: perspective(1000px) rotateX(60deg) translateY(0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: perspective(1000px) rotateX(60deg) translateY(-20px);
+  }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes shine {
+  0% {
+    transform: rotate(45deg) translateX(-100%);
+  }
+  100% {
+    transform: rotate(45deg) translateX(100%);
+  }
+}
+
+@keyframes scan {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+:root {
+  --color-neon: #00fff2;
+  --color-neon-alt: #ff00ff;
+  --color-text: #ffffff;
+  --color-background: #0a0a0f;
+  --color-legendary: #FFD700;
+  --color-epic: #A335EE;
+  --color-rare: #0070DD;
+  --color-common: #9D9D9D;
+}
+
+@media (max-width: 768px) {
+  .profile-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .badge-container {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+  
+  .role-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .chat-button {
+    width: 50px;
+    height: 50px;
+    bottom: 1rem;
+    right: 1rem;
+  }
+} 

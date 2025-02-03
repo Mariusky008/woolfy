@@ -69,58 +69,63 @@ export const RankingPage: React.FC = () => {
 
   return (
     <Container maxW="container.xl" py={8}>
-      <VStack spacing={8} align="stretch">
-        <Flex align="center">
-          <Heading size="xl">Classement</Heading>
-          <Spacer />
-          {user && (
-            <Button
-              colorScheme="blue"
-              onClick={handleUpdateRank}
-            >
-              Actualiser mon rang
-            </Button>
-          )}
-        </Flex>
-
-        <Tabs variant="enclosed">
-          <TabList>
-            <Tab>Classement Global</Tab>
-            {user && <Tab>Mon Classement</Tab>}
-            <Tab>Top par Rang</Tab>
-          </TabList>
-
-          <TabPanels>
-            <TabPanel>
-              <RankingTable userId={user?._id} />
-            </TabPanel>
-
+      <Box>
+        <Heading as="h1" mb={6}>Classement</Heading>
+        <VStack spacing={8} align="stretch">
+          <Flex align="center">
+            <Heading size="xl">Classement</Heading>
+            <Spacer />
             {user && (
-              <TabPanel>
-                <RankingTable userId={user._id} showContext={true} />
-              </TabPanel>
+              <Button
+                colorScheme="blue"
+                onClick={handleUpdateRank}
+              >
+                Actualiser mon rang
+              </Button>
             )}
+          </Flex>
 
-            <TabPanel>
-              <VStack spacing={4} align="stretch">
-                <HStack>
-                  <Text>Sélectionner un rang:</Text>
-                  <Select value={selectedRank} onChange={handleRankChange}>
-                    {ranks.map((rank) => (
-                      <option key={rank} value={rank}>
-                        {rank}
-                      </option>
-                    ))}
-                  </Select>
-                </HStack>
-                <Box>
-                  <RankingTable userId={user?._id} />
-                </Box>
-              </VStack>
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
-      </VStack>
+          <Tabs variant="enclosed">
+            <TabList>
+              <Tab>Classement Global</Tab>
+              {user && <Tab>Mon Classement</Tab>}
+              <Tab>Top par Rang</Tab>
+            </TabList>
+
+            <TabPanels>
+              <TabPanel>
+                <RankingTable userId={user?._id} />
+              </TabPanel>
+
+              {user && (
+                <TabPanel>
+                  <RankingTable userId={user._id} showContext={true} />
+                </TabPanel>
+              )}
+
+              <TabPanel>
+                <VStack spacing={4} align="stretch">
+                  <HStack>
+                    <Text>Sélectionner un rang:</Text>
+                    <Select value={selectedRank} onChange={handleRankChange}>
+                      {ranks.map((rank) => (
+                        <option key={rank} value={rank}>
+                          {rank}
+                        </option>
+                      ))}
+                    </Select>
+                  </HStack>
+                  <Box>
+                    <RankingTable userId={user?._id} />
+                  </Box>
+                </VStack>
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
+        </VStack>
+      </Box>
     </Container>
   );
-}; 
+};
+
+export default RankingPage; 

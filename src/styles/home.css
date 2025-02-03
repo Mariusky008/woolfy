@@ -1,0 +1,14 @@
+/* Variables et Reset */
+:root {
+    --color-primary: #ffffff;
+    --color-secondary: #FF6B6B;
+    --color-accent: #4ECDC4;
+    --color-dark: #0a0a0f;
+    --color-neon: #00fff2;
+    --color-neon-alt: #ff00ff;
+    --color-gold: #ffd700;
+    --font-primary: 'Rajdhani', sans-serif;
+    --font-secondary: 'Inter', sans-serif;
+}
+
+/* ... tout le reste du CSS ... */ 

@@ -1,0 +1,362 @@
+.auth-page {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #0a0a0f, #1a1a2f);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  padding: 2rem;
+}
+
+.cyberpunk-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.neon-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(90deg, rgba(0, 255, 242, 0.1) 1px, transparent 1px) 0 0 / 50px 50px,
+    linear-gradient(rgba(0, 255, 242, 0.1) 1px, transparent 1px) 0 0 / 50px 50px;
+  transform: perspective(1000px) rotateX(60deg);
+  transform-origin: bottom;
+  animation: gridPulse 4s ease-in-out infinite;
+  opacity: 0.3;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 500px;
+  background: rgba(10, 10, 15, 0.95);
+  border: 2px solid var(--color-neon);
+  border-radius: 15px;
+  padding: 2.5rem;
+  position: relative;
+  z-index: 2;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 30px rgba(0, 255, 242, 0.2);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.woolfy-logo {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  position: relative;
+}
+
+.mascot-woolfy-auth {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  animation: woolfyFloat 3s ease-in-out infinite;
+}
+
+.mascot-woolfy-auth .mascot-woolfy-inner {
+  width: 100%;
+  height: 100%;
+  background: var(--color-neon-alt);
+  clip-path: polygon(50% 0%, 80% 30%, 100% 60%, 80% 90%, 50% 100%, 20% 90%, 0% 60%, 20% 30%);
+  box-shadow: 0 0 30px var(--color-neon-alt);
+}
+
+.mascot-woolfy-auth .mascot-woolfy-eyes {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 15px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.mascot-woolfy-auth .mascot-woolfy-eyes::before,
+.mascot-woolfy-auth .mascot-woolfy-eyes::after {
+  content: '';
+  width: 15px;
+  height: 15px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 15px #fff;
+  animation: eyeGlow 2s infinite alternate;
+}
+
+.auth-subtitle {
+  font-size: 1.2rem;
+  color: var(--color-neon);
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 1rem;
+  background: transparent;
+  border: 2px solid var(--color-neon);
+  color: var(--color-neon);
+  font-family: var(--font-primary);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+}
+
+.tab-button.active {
+  background: rgba(0, 255, 242, 0.1);
+  box-shadow: 0 0 20px rgba(0, 255, 242, 0.3);
+}
+
+.tab-button:hover {
+  background: rgba(0, 255, 242, 0.1);
+  transform: translateY(-2px);
+}
+
+.auth-content {
+  margin-top: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.cyber-label {
+  display: block;
+  color: var(--color-neon);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+
+.cyber-input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: rgba(0, 255, 242, 0.1);
+  border: 2px solid var(--color-neon);
+  border-radius: 8px;
+  color: var(--color-primary);
+  font-family: var(--font-secondary);
+  transition: all 0.3s ease;
+}
+
+.cyber-input:focus {
+  outline: none;
+  box-shadow: 0 0 15px rgba(0, 255, 242, 0.3);
+  background: rgba(0, 255, 242, 0.15);
+}
+
+.password-input {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-neon);
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.password-toggle:hover {
+  color: var(--color-neon-alt);
+}
+
+.submit-button {
+  width: 100%;
+  padding: 1rem;
+  margin-top: 2rem;
+  background: rgba(0, 255, 242, 0.1);
+  border: 2px solid var(--color-neon);
+  color: var(--color-neon);
+  font-family: var(--font-primary);
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.submit-button:hover {
+  background: rgba(0, 255, 242, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(0, 255, 242, 0.3);
+}
+
+.auth-divider {
+  text-align: center;
+  margin: 2rem 0;
+  position: relative;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 45%;
+  height: 1px;
+  background: var(--color-neon);
+  opacity: 0.3;
+}
+
+.auth-divider::before {
+  left: 0;
+}
+
+.auth-divider::after {
+  right: 0;
+}
+
+.auth-divider span {
+  background: rgba(10, 10, 15, 0.95);
+  padding: 0 1rem;
+  color: var(--color-neon);
+  font-size: 0.9rem;
+}
+
+.social-auth {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.social-button {
+  width: 100%;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: transparent;
+  border: 2px solid;
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+}
+
+.social-button.google {
+  border-color: #EA4335;
+  color: #EA4335;
+}
+
+.social-button.google:hover {
+  background: rgba(234, 67, 53, 0.1);
+  box-shadow: 0 0 15px rgba(234, 67, 53, 0.3);
+}
+
+.social-button.discord {
+  border-color: #5865F2;
+  color: #5865F2;
+}
+
+.social-button.discord:hover {
+  background: rgba(88, 101, 242, 0.1);
+  box-shadow: 0 0 15px rgba(88, 101, 242, 0.3);
+}
+
+@keyframes woolfyFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes eyeGlow {
+  0% {
+    box-shadow: 0 0 5px #fff;
+    transform: scale(1);
+  }
+  100% {
+    box-shadow: 0 0 15px #fff, 0 0 30px #fff;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes gridPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: perspective(1000px) rotateX(60deg) translateY(0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: perspective(1000px) rotateX(60deg) translateY(-20px);
+  }
+}
+
+@media (max-width: 768px) {
+  .auth-container {
+    padding: 2rem;
+  }
+
+  .auth-tabs {
+    flex-direction: column;
+  }
+
+  .social-auth {
+    gap: 0.8rem;
+  }
+
+  .social-button {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 1.5rem;
+  }
+
+  .mascot-woolfy-auth {
+    width: 60px;
+    height: 60px;
+  }
+
+  .auth-subtitle {
+    font-size: 1rem;
+  }
+
+  .cyber-input {
+    padding: 0.7rem;
+  }
+
+  .submit-button {
+    font-size: 1rem;
+    padding: 0.8rem;
+  }
+} 

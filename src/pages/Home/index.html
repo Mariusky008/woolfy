@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Woolfy et les Chaises Piégées - Un jeu de bluff et de manipulation
+    </title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Raleway:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <nav class="nav-header">
+      <div class="woolfy-icon">
+        <div class="woolfy-icon-inner">
+          <div class="woolfy-icon-eyes"></div>
+        </div>
+      </div>
+      <button class="login-button">Connexion</button>
+    </nav>
+    <div class="cyberpunk-overlay"></div>
+    <div class="smoke-overlay"></div>
+
+    <header class="hero">
+      <div class="neon-grid"></div>
+      <div class="game-room">
+        <div class="circular-table">
+          <div class="chairs-container">
+            <!-- Les chaises seront générées en JS -->
+          </div>
+          <div class="mascot-woolfy">
+            <div class="mascot-woolfy-inner">
+              <div class="mascot-woolfy-eyes"></div>
+            </div>
+          </div>
+          <div class="mascot-woolfy-2">
+            <div class="mascot-woolfy-inner">
+              <div class="mascot-woolfy-eyes"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-content glitch-container">
+        <h1 class="main-title glitch" data-text="Woolfy">Woolfy</h1>
+        <h2 class="subtitle neon-text">et les Chaises Piégées</h2>
+        <p class="tagline cyber-text">
+          Un jeu de bluff, de stratégie et de trahison...<br />saurez-vous
+          rester assis jusqu'à la fin ?
+        </p>
+
+        <div class="countdown-container">
+          <p class="next-game">Prochaine partie dans</p>
+          <div class="countdown glitch">
+            <span class="time">03:24:10</span>
+          </div>
+        </div>
+
+        <button class="cta-button glitch-button">
+          <span class="glitch-text" data-text="JOUER MAINTENANT"
+            >JOUER MAINTENANT</span
+          >
+          <span class="button-effect"></span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="concept cyber-section">
+        <div class="content-wrapper">
+          <h2 class="glitch-title" data-text="Le Concept">Le Concept</h2>
+          <div class="concept-intro">
+            <p class="concept-description">
+              Dans un futur cyberpunk, 20 joueurs s'affrontent dans un jeu de
+              survie psychologique. Assis autour d'une table holographique,
+              chacun doit déjouer les pièges et identifier Woolfy, qui se cache
+              parmi eux. Mais attention, certaines chaises sont piégées...
+            </p>
+          </div>
+          <div class="features-grid">
+            <div class="feature-item cyber-card">
+              <div class="card-front">
+                <i class="fas fa-users neon-icon"></i>
+                <h3>Jeu Social</h3>
+                <p>Formez des alliances secrètes et trahissez au bon moment</p>
+                <div class="phases-list">
+                  <div class="phase-item">
+                    <span class="phase-number">01</span>
+                    <h5>Phase de Placement</h5>
+                    <p>Choisissez stratégiquement votre chaise initiale</p>
+                  </div>
+                  <div class="phase-item">
+                    <span class="phase-number">02</span>
+                    <h5>Phase de Discussion</h5>
+                    <p>2 minutes pour former des alliances et débattre</p>
+                  </div>
+                  <div class="phase-item">
+                    <span class="phase-number">03</span>
+                    <h5>Phase d'Action</h5>
+                    <p>
+                      Votez pour déplacer un joueur ou révéler une chaise
+                      suspecte
+                    </p>
+                  </div>
+                  <div class="phase-item">
+                    <span class="phase-number">04</span>
+                    <h5>Phase de Woolfy</h5>
+                    <p>
+                      Woolfy peut éliminer un joueur s'il n'est pas démasqué
+                    </p>
+                  </div>
+                </div>
+                <div class="card-effect"></div>
+              </div>
+              <div class="card-back">
+                <img
+                  src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3432&q=80"
+                  alt="Jeu Social"
+                />
+              </div>
+            </div>
+            <div class="feature-item cyber-card">
+              <div class="card-front">
+                <i class="fas fa-mask neon-icon"></i>
+                <h3>Bluff</h3>
+                <p>Mentez, manipulez, survivez... ou devenez une cible</p>
+                <ul class="feature-list">
+                  <li>Cachez votre véritable rôle</li>
+                  <li>Détectez les mensonges</li>
+                  <li>Manipulez les votes</li>
+                </ul>
+                <div class="card-effect"></div>
+              </div>
+              <div class="card-back">
+                <img
+                  src="https://images.unsplash.com/photo-1551732998-9573f695fdbb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3270&q=80"
+                  alt="Bluff"
+                />
+              </div>
+            </div>
+            <div class="feature-item cyber-card">
+              <div class="card-front">
+                <i class="fas fa-video neon-icon"></i>
+                <h3>Vidéo Live</h3>
+                <p>
+                  Observez les réactions, détectez les mensonges via les mess
+                  ages ecrits, oraux et vidéo
+                </p>
+                <ul class="feature-list">
+                  <li>Webcam et micro requis</li>
+                  <li>Analysez le langage corporel</li>
+                  <li>Repérez les indices</li>
+                </ul>
+                <div class="card-effect"></div>
+              </div>
+              <div class="card-back">
+                <img
+                  src="https://images.unsplash.com/photo-1576267423445-b2e0074d68a4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3270&q=80"
+                  alt="Vidéo Live"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="game-rules">
+            <h3 class="rules-title">Comment Jouer ?</h3>
+            <div class="rules-grid">
+              <div class="rule-item">
+                <span class="rule-number">01</span>
+                <h4>Objectifs</h4>
+                <p>
+                  Pour les joueurs : Survivre et identifier Woolfy<br />
+                  Pour Woolfy : Éliminer les joueurs sans être démasqué
+                </p>
+              </div>
+              <div class="rule-item">
+                <span class="rule-number">02</span>
+                <h4>Les Chaises</h4>
+                <p>
+                  Certaines sieges sont piégées, d'autres sieges sont spéciaux
+                  avec des pouvoirs uniques. Choisissez stratégiquement votre
+                  position !
+                </p>
+              </div>
+              <div class="rule-item">
+                <span class="rule-number">03</span>
+                <h4>Les Tours</h4>
+                <p>
+                  À chaque tour, votez pour déplacer un joueur ou pour révéler
+                  une chaise piégée. La tension monte à mesure que les places se
+                  réduisent.
+                </p>
+              </div>
+              <div class="rule-item">
+                <span class="rule-number">04</span>
+                <h4>La Victoire</h4>
+                <p>
+                  Les joueurs gagnent s'ils identifient Woolfy.<br />
+                  Woolfy gagne s'il élimine suffisamment de joueurs.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="statistics cyber-section">
+        <div class="content-wrapper">
+          <h2 class="glitch-title" data-text="Statistiques Live">
+            Statistiques Live
+          </h2>
+          <div class="stats-grid">
+            <div class="stat-item cyber-card">
+              <div class="stat-number glitch">27%</div>
+              <p>
+                des joueurs ont trouvé des alliés... des amitiés se sont faites,
+                des amours sont nées ici même
+              </p>
+              <div class="card-effect"></div>
+            </div>
+            <div class="stat-item cyber-card">
+              <div class="stat-number glitch">87%</div>
+              <p>adorent le frisson du bluff parfait</p>
+              <div class="card-effect"></div>
+            </div>
+            <div class="stat-item cyber-card">
+              <div class="stat-number glitch">93%</div>
+              <p>ont ressenti l'adrénaline pure du jeu</p>
+              <div class="card-effect"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-final cyber-section">
+        <div class="content-wrapper">
+          <h2 class="glitch-title" data-text="Prêt à Jouer ?">
+            Prêt à Jouer ?
+          </h2>
+          <p class="final-tagline">
+            Le jeu commence. Les alliances se forment. Woolfy est déjà à
+            l'affût...
+          </p>
+          <button class="cta-button glitch-button">
+            <span class="glitch-text" data-text="REJOINDRE LA PROCHAINE PARTIE"
+              >REJOINDRE LA PROCHAINE PARTIE</span
+            >
+            <span class="button-effect"></span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

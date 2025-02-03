@@ -1,71 +1,48 @@
-import {
-  Box,
-  Container,
-  VStack,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  Heading,
-  Text,
-  Input,
-  Button,
-  FormControl,
-  FormLabel,
-  InputGroup,
-  InputRightElement,
-  IconButton,
-  useToast,
-  Divider,
-  HStack,
-} from '@chakra-ui/react'
-import { motion } from 'framer-motion'
-import { useState } from 'react'
-import { FaEye, FaEyeSlash, FaGoogle, FaDiscord } from 'react-icons/fa'
-import { useNavigate } from 'react-router-dom'
-
-const MotionBox = motion(Box)
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../stores/authStore";
+import { useToast } from '@chakra-ui/react';
+import { FaEye, FaEyeSlash, FaGoogle, FaDiscord } from 'react-icons/fa';
+import './styles/auth.css';
 
 interface AuthFormData {
-  firstName?: string
-  lastName?: string
-  username?: string
-  email: string
-  password: string
+  username?: string;
+  email: string;
+  password: string;
 }
 
-export const AuthPage = () => {
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+export const AuthPage: React.FC = () => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('login');
   const [formData, setFormData] = useState<AuthFormData>({
-    firstName: '',
-    lastName: '',
     username: '',
     email: '',
     password: ''
-  })
-  const navigate = useNavigate()
-  const toast = useToast()
+  });
+  
+  const navigate = useNavigate();
+  const { setIsAuthenticated, setUser } = useAuthStore();
+  const toast = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
-    }))
-  }
+    }));
+  };
 
-  const handleSubmit = async (e: React.FormEvent, isLogin: boolean) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, isLogin: boolean) => {
+    e.preventDefault();
+    setIsLoading(true);
 
     try {
       const baseUrl = import.meta.env.PROD 
         ? import.meta.env.VITE_PROD_API_URL 
-        : import.meta.env.VITE_API_URL
-      const endpoint = isLogin ? `${baseUrl}/api/auth/login` : `${baseUrl}/api/auth/register`
-      console.log('Sending request to:', endpoint)
+        : import.meta.env.VITE_API_URL;
+      const endpoint = isLogin ? `${baseUrl}/api/auth/login` : `${baseUrl}/api/auth/register`;
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -80,292 +57,152 @@ export const AuthPage = () => {
           password: formData.password
         }),
         credentials: 'include'
-      })
+      });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.message || 'Une erreur est survenue')
+        throw new Error(data.message || 'Une erreur est survenue');
       }
 
-      const data = await response.json()
-      console.log('Response:', data)
+      setIsAuthenticated(true);
+      setUser(data.user);
 
       toast({
         title: isLogin ? 'Connexion réussie' : 'Compte créé avec succès',
         description: isLogin ? 'Bienvenue sur Woolfy !' : 'Bienvenue dans la meute !',
         status: 'success',
-        duration: 3000,
+        duration: 2000,
         isClosable: true,
-      })
+        onCloseComplete: () => {
+          navigate('/games', { replace: true });
+        }
+      });
 
-      navigate('/games')
     } catch (error) {
-      console.error('Auth error:', error)
+      console.error('Auth error:', error);
       toast({
         title: 'Erreur',
         description: error instanceof Error ? error.message : 'Une erreur est survenue',
         status: 'error',
         duration: 5000,
         isClosable: true,
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <Box 
-      minH="100vh" 
-      bg="gray.900"
-      py={20}
-      position="relative"
-      overflow="hidden"
-    >
-      {/* Background Effect */}
-      <Box
-        position="absolute"
-        top={0}
-        left={0}
-        right={0}
-        bottom={0}
-        bgGradient="radial(circle at 50% 50%, purple.900 0%, gray.900 70%)"
-        opacity={0.6}
-        zIndex={0}
-      />
+    <div className="auth-page">
+      <div className="cyberpunk-overlay"></div>
+      <div className="neon-grid"></div>
 
-      <Container maxW="container.sm" position="relative" zIndex={1}>
-        <MotionBox
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          bg="whiteAlpha.100"
-          p={8}
-          borderRadius="xl"
-          backdropFilter="blur(10px)"
-        >
-          <Tabs isFitted variant="soft-rounded" colorScheme="purple">
-            <TabList mb={8}>
-              <Tab _selected={{ bg: 'purple.500' }}>Connexion</Tab>
-              <Tab _selected={{ bg: 'purple.500' }}>Inscription</Tab>
-            </TabList>
+      <div className="auth-container cyber-panel">
+        <div className="auth-header">
+          <div className="woolfy-logo">
+            <div className="mascot-woolfy-auth">
+              <div className="mascot-woolfy-inner">
+                <div className="mascot-woolfy-eyes"></div>
+              </div>
+            </div>
+          </div>
+          <h1 className="glitch-title" data-text="WOOLFY">WOOLFY</h1>
+          <p className="auth-subtitle neon-text">Rejoignez la meute</p>
+        </div>
 
-            <TabPanels>
-              {/* Login Panel */}
-              <TabPanel>
-                <VStack as="form" spacing={6} onSubmit={(e) => handleSubmit(e, true)}>
-                  <Heading
-                    size="xl"
-                    bgGradient="linear(to-r, purple.400, pink.400)"
-                    bgClip="text"
-                    mb={2}
-                  >
-                    Bon retour !
-                  </Heading>
-                  <Text color="whiteAlpha.600" textAlign="center" mb={4}>
-                    Prêt à rejoindre la meute ?
-                  </Text>
+        <div className="auth-tabs">
+          <button 
+            className={`tab-button ${activeTab === 'login' ? 'active' : ''}`}
+            onClick={() => setActiveTab('login')}
+          >
+            <span className="glitch-text" data-text="Connexion">Connexion</span>
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'register' ? 'active' : ''}`}
+            onClick={() => setActiveTab('register')}
+          >
+            <span className="glitch-text" data-text="Inscription">Inscription</span>
+          </button>
+        </div>
 
-                  <FormControl>
-                    <FormLabel>Email</FormLabel>
-                    <Input 
-                      name="email"
-                      type="email" 
-                      placeholder="votre@email.com"
-                      bg="whiteAlpha.100"
-                      border="none"
-                      _focus={{ bg: 'whiteAlpha.200' }}
-                      value={formData.email}
-                      onChange={handleInputChange}
-                    />
-                  </FormControl>
-
-                  <FormControl>
-                    <FormLabel>Mot de passe</FormLabel>
-                    <InputGroup>
-                      <Input
-                        name="password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Votre mot de passe"
-                        bg="whiteAlpha.100"
-                        border="none"
-                        _focus={{ bg: 'whiteAlpha.200' }}
-                        value={formData.password}
-                        onChange={handleInputChange}
-                      />
-                      <InputRightElement>
-                        <IconButton
-                          aria-label={showPassword ? 'Cacher le mot de passe' : 'Montrer le mot de passe'}
-                          icon={showPassword ? <FaEyeSlash /> : <FaEye />}
-                          variant="ghost"
-                          onClick={() => setShowPassword(!showPassword)}
-                        />
-                      </InputRightElement>
-                    </InputGroup>
-                  </FormControl>
-
-                  <Button
-                    type="submit"
-                    colorScheme="purple"
-                    size="lg"
-                    w="full"
-                    isLoading={isLoading}
-                  >
-                    Se connecter
-                  </Button>
-
-                  <Divider my={6} />
-
-                  <VStack spacing={4} w="full">
-                    <Button
-                      w="full"
-                      variant="outline"
-                      leftIcon={<FaGoogle />}
-                      onClick={() => {}}
-                    >
-                      Continuer avec Google
-                    </Button>
-                    <Button
-                      w="full"
-                      variant="outline"
-                      leftIcon={<FaDiscord />}
-                      onClick={() => {}}
-                    >
-                      Continuer avec Discord
-                    </Button>
-                  </VStack>
-                </VStack>
-              </TabPanel>
-
-              {/* Register Panel */}
-              <TabPanel>
-                <VStack as="form" spacing={6} onSubmit={(e) => handleSubmit(e, false)}>
-                  <Heading
-                    size="xl"
-                    bgGradient="linear(to-r, purple.400, pink.400)"
-                    bgClip="text"
-                    mb={2}
-                  >
-                    Rejoignez la meute !
-                  </Heading>
-                  <Text color="whiteAlpha.600" textAlign="center" mb={4}>
-                    Créez votre compte en quelques secondes
-                  </Text>
-
-                  <HStack spacing={4} w="full">
-                    <FormControl>
-                      <FormLabel>Prénom</FormLabel>
-                      <Input 
-                        name="firstName"
-                        placeholder="Votre prénom"
-                        bg="whiteAlpha.100"
-                        border="none"
-                        _focus={{ bg: 'whiteAlpha.200' }}
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                      />
-                    </FormControl>
-
-                    <FormControl>
-                      <FormLabel>Nom</FormLabel>
-                      <Input 
-                        name="lastName"
-                        placeholder="Votre nom"
-                        bg="whiteAlpha.100"
-                        border="none"
-                        _focus={{ bg: 'whiteAlpha.200' }}
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                      />
-                    </FormControl>
-                  </HStack>
-
-                  <FormControl>
-                    <FormLabel>Pseudo</FormLabel>
-                    <Input 
+        <div className="auth-content">
+          <form onSubmit={(e) => handleSubmit(e, activeTab === 'login')} className="auth-form">
+            {activeTab === 'register' && (
+              <div className="form-group">
+                <label className="cyber-label">Nom d'utilisateur</label>
+                <input
+                  type="text"
                       name="username"
-                      placeholder="Votre pseudo"
-                      bg="whiteAlpha.100"
-                      border="none"
-                      _focus={{ bg: 'whiteAlpha.200' }}
                       value={formData.username}
                       onChange={handleInputChange}
+                      className="cyber-input"
+                  required
                     />
-                  </FormControl>
+              </div>
+            )}
 
-                  <FormControl>
-                    <FormLabel>Email</FormLabel>
-                    <Input 
+            <div className="form-group">
+              <label className="cyber-label">Email</label>
+              <input
+                type="email"
                       name="email"
-                      type="email" 
-                      placeholder="votre@email.com"
-                      bg="whiteAlpha.100"
-                      border="none"
-                      _focus={{ bg: 'whiteAlpha.200' }}
                       value={formData.email}
                       onChange={handleInputChange}
+                      className="cyber-input"
+                required
                     />
-                  </FormControl>
+            </div>
 
-                  <FormControl>
-                    <FormLabel>Mot de passe</FormLabel>
-                    <InputGroup>
-                      <Input
+            <div className="form-group">
+              <label className="cyber-label">Mot de passe</label>
+              <div className="password-input">
+                <input
+                  type={showPassword ? "text" : "password"}
                         name="password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Choisissez un mot de passe"
-                        bg="whiteAlpha.100"
-                        border="none"
-                        _focus={{ bg: 'whiteAlpha.200' }}
                         value={formData.password}
                         onChange={handleInputChange}
+                        className="cyber-input"
+                  required
                       />
-                      <InputRightElement>
-                        <IconButton
-                          aria-label={showPassword ? 'Cacher le mot de passe' : 'Montrer le mot de passe'}
-                          icon={showPassword ? <FaEyeSlash /> : <FaEye />}
-                          variant="ghost"
+                <button
+                  type="button"
+                  className="password-toggle"
                           onClick={() => setShowPassword(!showPassword)}
-                        />
-                      </InputRightElement>
-                    </InputGroup>
-                  </FormControl>
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+            </div>
 
-                  <Button
+            <button 
                     type="submit"
-                    colorScheme="purple"
-                    size="lg"
-                    w="full"
-                    isLoading={isLoading}
-                  >
-                    Créer mon compte
-                  </Button>
+              className="submit-button glitch-button"
+              disabled={isLoading}
+            >
+              <span className="glitch-text" data-text={activeTab === 'login' ? 'CONNEXION' : 'INSCRIPTION'}>
+                {activeTab === 'login' ? 'CONNEXION' : 'INSCRIPTION'}
+              </span>
+              <span className="button-effect"></span>
+            </button>
+          </form>
 
-                  <Divider my={6} />
+          <div className="auth-divider">
+            <span>OU</span>
+          </div>
 
-                  <VStack spacing={4} w="full">
-                    <Button
-                      w="full"
-                      variant="outline"
-                      leftIcon={<FaGoogle />}
-                      onClick={() => {}}
-                    >
-                      S'inscrire avec Google
-                    </Button>
-                    <Button
-                      w="full"
-                      variant="outline"
-                      leftIcon={<FaDiscord />}
-                      onClick={() => {}}
-                    >
-                      S'inscrire avec Discord
-                    </Button>
-                  </VStack>
-                </VStack>
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
-        </MotionBox>
-      </Container>
-    </Box>
-  )
-} 
+          <div className="social-auth">
+            <button className="social-button google">
+              <FaGoogle /> Continuer avec Google
+            </button>
+            <button className="social-button discord">
+              <FaDiscord /> Continuer avec Discord
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AuthPage; 

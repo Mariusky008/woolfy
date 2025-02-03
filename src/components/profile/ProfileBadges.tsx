@@ -1,67 +1,64 @@
 import React from 'react'
 import {
   Box,
-  Heading,
-  Wrap,
-  WrapItem,
-  Tag,
-  TagLeftIcon,
-  TagLabel,
+  SimpleGrid,
+  Text,
+  VStack,
 } from '@chakra-ui/react'
-import { GiTrophyCup, GiLaurelCrown, GiDeathSkull } from 'react-icons/gi'
-import { Profile } from '../../types/profile'
+import { Badge } from '../../types/profile'
 
 interface ProfileBadgesProps {
-  profile: Profile
+  badges: Badge[]
 }
 
-export const ProfileBadges: React.FC<ProfileBadgesProps> = ({ profile }) => {
+export const ProfileBadges: React.FC<ProfileBadgesProps> = ({ badges }) => {
   return (
-    <Box bg="whiteAlpha.200" p={6} borderRadius="xl">
-      <Heading size="md" mb={4}>Badges et Réalisations</Heading>
-      <Wrap spacing={4}>
-        <WrapItem>
-          <Tag size="lg" colorScheme="purple">
-            <TagLeftIcon as={GiTrophyCup} />
-            <TagLabel>Expert {profile.stats.favoriteRole}</TagLabel>
-          </Tag>
-        </WrapItem>
-        <WrapItem>
-          <Tag size="lg" colorScheme="green">
-            <TagLeftIcon as={GiLaurelCrown} />
-            <TagLabel>Vétéran</TagLabel>
-          </Tag>
-        </WrapItem>
-        <WrapItem>
-          <Tag size="lg" colorScheme="red">
-            <TagLeftIcon as={GiDeathSkull} />
-            <TagLabel>Prédateur</TagLabel>
-          </Tag>
-        </WrapItem>
-        {profile.badges.map(badge => (
-          <WrapItem key={badge.id}>
-            <Tag 
-              size="lg" 
-              colorScheme={getBadgeColorScheme(badge.rarity)}
-            >
-              <TagLabel>{badge.name}</TagLabel>
-            </Tag>
-          </WrapItem>
-        ))}
-      </Wrap>
-    </Box>
+    <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={4}>
+      {badges.map((badge) => (
+        <VStack
+          key={badge.id}
+          p={4}
+          bg="rgba(10, 10, 15, 0.95)"
+          borderRadius="lg"
+          border="2px solid"
+          borderColor={getBadgeColor(badge.rarity)}
+          _hover={{
+            transform: 'translateY(-2px)',
+            boxShadow: `0 0 20px ${getBadgeColor(badge.rarity)}`,
+          }}
+          transition="all 0.3s ease"
+        >
+          <Text fontWeight="bold" color={getBadgeColor(badge.rarity)}>
+            {badge.name}
+          </Text>
+          {badge.description && (
+            <Text fontSize="sm" color="gray.400" textAlign="center">
+              {badge.description}
+            </Text>
+          )}
+          <Text
+            fontSize="xs"
+            color={getBadgeColor(badge.rarity)}
+            textTransform="uppercase"
+            mt={2}
+          >
+            {badge.rarity}
+          </Text>
+        </VStack>
+      ))}
+    </SimpleGrid>
   )
 }
 
-const getBadgeColorScheme = (rarity: string) => {
+const getBadgeColor = (rarity: Badge['rarity']): string => {
   switch (rarity) {
     case 'legendary':
-      return 'yellow'
+      return 'var(--color-legendary, #FFD700)'
     case 'epic':
-      return 'purple'
+      return 'var(--color-epic, #A335EE)'
     case 'rare':
-      return 'blue'
+      return 'var(--color-rare, #0070DD)'
     default:
-      return 'gray'
+      return 'var(--color-common, #9D9D9D)'
   }
 } 

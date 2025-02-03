@@ -5,7 +5,8 @@ import {
   Text,
   useToast,
   Divider,
-  VStack
+  VStack,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { useEffect } from 'react'
 import { useMessageStore } from '../../stores/messageStore'
@@ -18,6 +19,9 @@ export const Chat = () => {
   const currentConversationId = useMessageStore((state) => state.currentConversationId)
   const conversations = useMessageStore((state) => state.conversations)
   const toast = useToast()
+
+  const bgColor = useColorModeValue('whiteAlpha.200', 'rgba(10, 10, 15, 0.95)')
+  const borderColor = useColorModeValue('whiteAlpha.300', 'rgba(0, 255, 242, 0.2)')
 
   const handleAcceptInvite = async (messageId: string) => {
     try {
@@ -57,7 +61,6 @@ export const Chat = () => {
     }
   }
 
-  // Charger les messages quand une conversation est sélectionnée
   useEffect(() => {
     if (currentConversationId) {
       messageService.getMessages(currentConversationId).catch((error) => {
@@ -71,57 +74,88 @@ export const Chat = () => {
         })
       })
 
-      // Marquer les messages comme lus
       messageService.markAsRead(currentConversationId).catch(console.error)
     }
   }, [currentConversationId])
 
   return (
-    <Grid
-      templateColumns={{ base: '1fr', md: '300px 1fr' }}
-      gap={4}
-      h="full"
-    >
-      <GridItem borderWidth="1px" borderRadius="lg" overflow="hidden">
-        <VStack align="stretch" h="full">
-          <Box p={4} borderBottomWidth="1px">
-            <Text fontSize="lg" fontWeight="bold">
-              Messages
-            </Text>
-          </Box>
-          <Box flex={1} overflowY="auto">
-            <ChatList />
-          </Box>
-        </VStack>
-      </GridItem>
-
-      <GridItem borderWidth="1px" borderRadius="lg" overflow="hidden">
-        {currentConversationId ? (
-          <VStack align="stretch" h="full">
-            <Box p={4} borderBottomWidth="1px">
-              <Text fontSize="lg" fontWeight="bold">
-                {conversations.find((c) => c._id === currentConversationId)?.username}
+    <Box h="full" maxH="calc(100vh - 100px)" overflow="hidden" px={4}>
+      <Grid
+        templateColumns={{ 
+          base: '1fr', 
+          md: '280px 1fr',
+          lg: '300px minmax(600px, 1fr)',
+          xl: '320px minmax(800px, 1fr)'
+        }}
+        gap={{ base: 4, md: 6 }}
+        h="full"
+        maxW="1800px"
+        mx="auto"
+      >
+        <GridItem 
+          borderWidth="1px" 
+          borderRadius="lg"
+          borderColor={borderColor}
+          bg="rgba(0, 0, 0, 0.3)"
+          overflow="hidden"
+          h="full"
+          maxH="full"
+          display={{ base: currentConversationId ? 'none' : 'block', md: 'block' }}
+        >
+          <VStack align="stretch" h="full" spacing={0}>
+            <Box p={4} borderBottomWidth="1px" borderColor={borderColor}>
+              <Text fontSize="lg" fontWeight="bold" color="var(--color-neon)">
+                Messages
               </Text>
             </Box>
             <Box flex={1} overflowY="auto">
-              <ChatMessages
-                onAcceptInvite={handleAcceptInvite}
-                onRejectInvite={handleRejectInvite}
-              />
-            </Box>
-            <Divider />
-            <Box p={2}>
-              <ChatInput />
+              <ChatList />
             </Box>
           </VStack>
-        ) : (
-          <VStack justify="center" h="full" p={4}>
-            <Text color="gray.500">
-              Sélectionnez une conversation pour commencer à discuter
-            </Text>
-          </VStack>
-        )}
-      </GridItem>
-    </Grid>
+        </GridItem>
+
+        <GridItem 
+          borderWidth="1px" 
+          borderRadius="lg"
+          borderColor={borderColor}
+          bg="rgba(0, 0, 0, 0.3)"
+          overflow="hidden"
+          h="full"
+          maxH="full"
+          display="flex"
+          flexDirection="column"
+        >
+          {currentConversationId ? (
+            <>
+              <Box p={4} borderBottomWidth="1px" borderColor={borderColor}>
+                <Text fontSize="lg" fontWeight="bold" color="var(--color-neon)">
+                  {conversations.find((c) => c._id === currentConversationId)?.username}
+                </Text>
+              </Box>
+              <Box flex={1} overflowY="auto" minH={0}>
+                <ChatMessages
+                  onAcceptInvite={handleAcceptInvite}
+                  onRejectInvite={handleRejectInvite}
+                />
+              </Box>
+              <Box 
+                p={4} 
+                borderTopWidth="1px" 
+                borderColor={borderColor}
+                bg="rgba(0, 0, 0, 0.2)"
+              >
+                <ChatInput />
+              </Box>
+            </>
+          ) : (
+            <VStack justify="center" h="full" p={4}>
+              <Text color="gray.500">
+                Sélectionnez une conversation pour commencer à discuter
+              </Text>
+            </VStack>
+          )}
+        </GridItem>
+      </Grid>
+    </Box>
   )
 } 

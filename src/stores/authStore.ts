@@ -29,6 +29,7 @@ interface AuthState {
   setIsAuthenticated: (isAuthenticated: boolean) => void
   setIsLoading: (isLoading: boolean) => void
   logout: () => void
+  checkAuth: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -39,5 +40,28 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user) => set({ user, isAuthenticated: !!user }),
   setIsAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
   setIsLoading: (isLoading) => set({ isLoading }),
-  logout: () => set({ user: null, isAuthenticated: false })
+  logout: () => set({ user: null, isAuthenticated: false }),
+  
+  checkAuth: async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/check', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      set({ isAuthenticated: data.isAuthenticated, isLoading: false });
+      
+      if (data.isAuthenticated) {
+        const userResponse = await fetch('http://localhost:3000/api/auth/me', {
+          credentials: 'include'
+        });
+        const userData = await userResponse.json();
+        if (userData.success) {
+          set({ user: userData.user });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+      set({ isAuthenticated: false, isLoading: false });
+    }
+  }
 })) 

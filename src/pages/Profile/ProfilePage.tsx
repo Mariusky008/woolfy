@@ -9,6 +9,7 @@ import {
   Container,
   Spinner,
   Center,
+  Heading,
 } from '@chakra-ui/react'
 import { ChatIcon, EditIcon } from '@chakra-ui/icons'
 import { ProfileHeader } from '../../components/profile/ProfileHeader'
@@ -24,6 +25,7 @@ import { Navbar } from '../../components/Navbar'
 import { messageService } from '../../services/MessageService'
 import { useAuthStore } from '../../stores/authStore'
 import { useNavigate } from 'react-router-dom'
+import './styles/profile.css'
 
 export const ProfilePage: React.FC = () => {
   const [showChat, setShowChat] = useState(false)
@@ -151,47 +153,140 @@ export const ProfilePage: React.FC = () => {
 
   if (!user) {
     return (
-      <Center minH="100vh" bg="gray.900">
-        <Spinner size="xl" color="purple.500" />
+      <Center minH="100vh" className="profile-page">
+        <div className="cyberpunk-grid" />
+        <Spinner size="xl" color="var(--color-neon)" />
       </Center>
     )
   }
 
-  // Convertir les données de l'utilisateur au format attendu par les composants
+  // Dans la fonction ProfilePage, avant le return, ajoutons des données d'exemple :
+  const sampleGameHistory: IGameHistory[] = [
+    {
+      id: '1',
+      type: 'classic',
+      date: '2024-03-20',
+      duration: '15:30',
+      role: 'Loup-Garou',
+      result: 'Victoire',
+      points: 150,
+      players: [
+        {
+          id: '2',
+          username: 'AlphaWolf',
+          avatar: 'https://i.pravatar.cc/150?img=1',
+          role: 'Villageois',
+          result: 'Défaite',
+          reputation: 1200
+        },
+        {
+          id: '3',
+          username: 'MysticSeer',
+          avatar: 'https://i.pravatar.cc/150?img=2',
+          role: 'Voyante',
+          result: 'Défaite',
+          reputation: 980
+        },
+        {
+          id: '4',
+          username: 'NightHunter',
+          avatar: 'https://i.pravatar.cc/150?img=3',
+          role: 'Chasseur',
+          result: 'Défaite',
+          reputation: 1500
+        }
+      ]
+    }
+  ];
+
+  // Ajout de badges d'exemple
+  const sampleBadges = [
+    {
+      id: 'first-win',
+      name: 'Première Victoire',
+      rarity: 'common' as const,
+      description: 'A remporté sa première partie'
+    },
+    {
+      id: 'master-wolf',
+      name: 'Maître Loup',
+      rarity: 'epic' as const,
+      description: 'A gagné 50 parties en tant que Loup-Garou'
+    },
+    {
+      id: 'perfect-seer',
+      name: 'Voyante Parfaite',
+      rarity: 'legendary' as const,
+      description: 'A correctement identifié 10 Loups-Garous consécutifs'
+    }
+  ];
+
+  // Ajout des statistiques par rôle
+  const sampleRoleStats = [
+    {
+      role: 'Loup-Garou',
+      gamesPlayed: 15,
+      wins: 10,
+      winRate: 66.7,
+      kills: 12,
+      specialActions: 8
+    },
+    {
+      role: 'Voyante',
+      gamesPlayed: 12,
+      wins: 8,
+      winRate: 66.7,
+      specialActions: 24
+    },
+    {
+      role: 'Sorcière',
+      gamesPlayed: 8,
+      wins: 5,
+      winRate: 62.5,
+      kills: 3,
+      specialActions: 12
+    },
+    {
+      role: 'Chasseur',
+      gamesPlayed: 7,
+      wins: 5,
+      winRate: 71.4,
+      kills: 6,
+      specialActions: 7
+    }
+  ];
+
+  // Mise à jour des données du profil
   const profileData: Profile = {
     username: user.username,
     avatar: user.avatar || '',
-    bio: user.bio || '',
+    bio: user.bio || 'Chasseur de loups-garous expérimenté, spécialisé dans les accusations précises et les stratégies nocturnes.',
     joinedAt: user.createdAt,
     lastActive: user.lastActive,
     status: user.status,
     stats: {
-      gamesPlayed: user.gamesPlayed,
-      gamesWon: user.gamesWon,
-      winRate: user.gamesPlayed > 0 ? (user.gamesWon / user.gamesPlayed * 100).toFixed(1) + '%' : '0%',
-      reputation: user.points,
-      correctAccusations: user.correctAccusations,
-      totalAccusations: user.totalAccusations,
-      totalKills: user.totalKills,
-      favoriteRole: user.favoriteRole,
-      totalPoints: user.points,
-      nationalRank: 0, // À implémenter avec le classement réel
+      gamesPlayed: 42,
+      gamesWon: 28,
+      winRate: '66.7%',
+      reputation: 1250,
+      correctAccusations: 35,
+      totalAccusations: 45,
+      totalKills: 15,
+      favoriteRole: 'Loup-Garou',
+      totalPoints: 3500,
+      nationalRank: 158
     },
-    badges: user.badges.map(badge => ({
-      id: badge,
-      name: badge,
-      rarity: 'common' as const,
-    })),
+    badges: sampleBadges,
     rank: {
-      current: user.rank,
-      progress: calculateProgress(user.points),
+      current: 'Loup Alpha',
+      progress: 75,
       season: 'Saison 1',
-      points: user.points,
-      rank: 0, // Sera mis à jour avec le vrai classement
-      tier: getTierFromRank(user.rank),
-      division: getDivisionFromPoints(user.points).toString()
+      points: 3500,
+      rank: 158,
+      tier: 'Alpha',
+      division: 'II'
     },
-    roles: [] // À implémenter avec les statistiques par rôle
+    roles: []
   }
 
   // Fonctions utilitaires pour le calcul du rang
@@ -234,11 +329,17 @@ export const ProfilePage: React.FC = () => {
   }
 
   return (
-    <Box minH="100vh" bg="gray.900" color="white">
+    <div className="profile-page">
+      <div className="cyberpunk-grid" />
       <Navbar />
-      <Container maxW="container.xl" px={{ base: 4, md: 8 }} pt={{ base: "80px", md: "100px" }}>
-        <VStack spacing={{ base: 4, md: 8 }} align="stretch">
-          <Box position="relative">
+      <Container 
+        maxW="container.xl" 
+        className="profile-container" 
+        px={{ base: 4, md: 8 }} 
+        pt={{ base: "80px", md: "100px" }}
+      >
+        <VStack spacing={{ base: 6, md: 12 }} align="stretch">
+          <Box position="relative" className="profile-header">
             <ProfileHeader profile={profileData} />
             <IconButton
               aria-label="Modifier le profil"
@@ -246,70 +347,76 @@ export const ProfilePage: React.FC = () => {
               position="absolute"
               top={{ base: 4, md: 6 }}
               right={{ base: 4, md: 6 }}
-              colorScheme="purple"
-              variant="ghost"
               onClick={() => setShowEditProfile(true)}
+              className="edit-button"
+              variant="ghost"
+              _hover={{
+                bg: 'rgba(0, 255, 242, 0.1)',
+                transform: 'scale(1.1)',
+              }}
             />
           </Box>
 
-          <Grid 
-            templateColumns={{ base: '1fr', lg: '2fr 1fr' }} 
-            gap={{ base: 4, md: 8 }}
-          >
-            <GridItem>
-              <VStack spacing={{ base: 4, md: 8 }} align="stretch">
-                <ProfileStats stats={profileData.stats} />
-                <RoleStats roles={profileData.roles} />
-                {isLoading ? (
-                  <Center p={8}>
-                    <Spinner size="xl" color="purple.500" />
-                  </Center>
-                ) : (
-                  <GameHistory 
-                    games={gameHistory}
-                    onInvitePlayer={handleInvitePlayer} 
-                  />
-                )}
-              </VStack>
-            </GridItem>
+          <Box>
+            <ProfileStats stats={profileData.stats} />
+          </Box>
 
-            <GridItem>
-              <VStack spacing={{ base: 4, md: 8 }} align="stretch">
-                <NationalRanking rank={profileData.rank} />
-                <ProfileBadges profile={profileData} />
-              </VStack>
-            </GridItem>
-          </Grid>
+          <Box className="ranking-section" bg="rgba(10, 10, 15, 0.95)" p={6} borderRadius="xl">
+            <NationalRanking rank={profileData.rank} />
+          </Box>
 
-          {/* Bouton pour ouvrir le chat */}
-          <IconButton
-            aria-label="Ouvrir le chat"
-            icon={<ChatIcon />}
-            position="fixed"
-            bottom={6}
-            right={6}
-            size="lg"
-            colorScheme="blue"
-            onClick={() => setShowChat(true)}
-            zIndex={2}
-          />
+          <Box className="badges-section" bg="rgba(10, 10, 15, 0.95)" p={6} borderRadius="xl">
+            <Heading size="md" mb={6}>Badges et Réalisations</Heading>
+            <ProfileBadges badges={profileData.badges} />
+          </Box>
 
-          {/* Chat Drawer */}
-          <ChatDrawer
-            isOpen={showChat}
-            onClose={() => setShowChat(false)}
-          />
+          <Box className="role-stats-section" bg="rgba(10, 10, 15, 0.95)" p={6} borderRadius="xl">
+            <Heading size="md" mb={6}>Statistiques par Rôle</Heading>
+            <RoleStats roles={sampleRoleStats} />
+          </Box>
 
-          {/* Edit Profile Modal */}
-          <EditProfileModal
-            isOpen={showEditProfile}
-            onClose={() => setShowEditProfile(false)}
-            currentAvatar={profileData.avatar}
-            currentBio={profileData.bio}
-            onSave={handleUpdateProfile}
-          />
+          <Box className="game-history-section" bg="rgba(10, 10, 15, 0.95)" p={6} borderRadius="xl">
+            <Heading size="md" mb={6}>Parties Récentes</Heading>
+            <GameHistory 
+              games={sampleGameHistory}
+              onInvitePlayer={handleInvitePlayer}
+            />
+          </Box>
         </VStack>
       </Container>
-    </Box>
+
+      <IconButton
+        aria-label="Chat"
+        icon={<ChatIcon />}
+        position="fixed"
+        bottom="4"
+        right="4"
+        size="lg"
+        onClick={() => setShowChat(true)}
+        className="chat-button"
+        variant="solid"
+        bg="var(--color-neon)"
+        color="black"
+        _hover={{
+          transform: 'scale(1.1)',
+          boxShadow: '0 0 20px var(--color-neon)',
+        }}
+      />
+
+      <ChatDrawer
+        isOpen={showChat}
+        onClose={() => setShowChat(false)}
+      />
+
+      <EditProfileModal
+        isOpen={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+        onSave={handleUpdateProfile}
+        currentAvatar={profileData.avatar}
+        currentBio={profileData.bio}
+      />
+    </div>
   )
-} 
+}
+
+export default ProfilePage; 

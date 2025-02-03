@@ -9,7 +9,7 @@
     "build": "tsc && vite build",
     "build:server": "tsc --project tsconfig.server.json",
     "build:client": "vite build",
-    "vercel-build": "tsc --project tsconfig.vercel.json && npm run build:client",
+    "vercel-build": "tsc --project tsconfig.vercel.json",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "start": "node dist/server/index.js"

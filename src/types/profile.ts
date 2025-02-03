@@ -35,7 +35,6 @@ export interface Badge {
   name: string
   rarity: 'common' | 'rare' | 'epic' | 'legendary'
   description?: string
-  unlockedAt?: Date
 }
 
 export interface Profile {
@@ -56,7 +55,7 @@ export interface GameHistoryPlayer {
   username: string
   avatar?: string
   role: string
-  result: 'winner' | 'loser'
+  result: 'Victoire' | 'Défaite'
   reputation: number
 }
 
@@ -66,7 +65,7 @@ export interface GameHistory {
   date: string
   duration: string
   role: string
-  result: 'winner' | 'loser'
+  result: 'Victoire' | 'Défaite'
   points: number
   players: GameHistoryPlayer[]
 }

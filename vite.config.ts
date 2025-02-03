@@ -16,7 +16,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 5173,
+    port: 5175,
     watch: {
       usePolling: true
     },
@@ -33,9 +33,11 @@ export default defineConfig({
       }
     }
   },
+  publicDir: 'public',
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    assetsDir: 'assets'
   },
   define: {
     'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL),
