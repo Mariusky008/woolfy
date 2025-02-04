@@ -957,6 +957,10 @@ export const GameInProgress: React.FC = () => {
     const toX = Math.cos(toAngle) * gameAreaSize.radius;
     const toY = Math.sin(toAngle) * gameAreaSize.radius;
 
+    // Calculer le point de contrôle pour la courbe de Bézier
+    const controlX = (fromX + toX) / 2 - (toY - fromY) * 0.5;
+    const controlY = (fromY + toY) / 2 + (toX - fromX) * 0.5;
+
     return (
       <Box
         position="absolute"
@@ -966,30 +970,62 @@ export const GameInProgress: React.FC = () => {
         height="100%"
         pointerEvents="none"
       >
+        {/* Ligne de vote courbe */}
         <Box
           position="absolute"
           top="50%"
           left="50%"
-          width="4px"
-          height="4px"
-          borderRadius="full"
-          bg="red.500"
-          transform={`translate(-50%, -50%)`}
-          animation="vote-particle 1s linear forwards"
-          sx={{
-            '@keyframes vote-particle': {
-              '0%': {
-                transform: `translate(calc(-50% + ${fromX}px), calc(-50% + ${fromY}px))`,
-                opacity: 1
-              },
-              '100%': {
-                transform: `translate(calc(-50% + ${toX}px), calc(-50% + ${toY}px))`,
-                opacity: 0
+          width="100%"
+          height="100%"
+        >
+          <svg width="100%" height="100%" style={{ position: 'absolute', top: '0', left: '0' }}>
+            <path
+              d={`M ${fromX + gameAreaSize.width/2} ${fromY + gameAreaSize.height/2} 
+                 Q ${controlX + gameAreaSize.width/2} ${controlY + gameAreaSize.height/2} 
+                 ${toX + gameAreaSize.width/2} ${toY + gameAreaSize.height/2}`}
+              fill="none"
+              stroke="rgba(255, 0, 0, 0.3)"
+              strokeWidth="2"
+              style={{
+                filter: 'drop-shadow(0 0 8px rgba(255, 0, 0, 0.5))'
+              }}
+            />
+          </svg>
+        </Box>
+
+        {/* Particules de vote */}
+        {[...Array(5)].map((_, i) => (
+          <Box
+            key={i}
+            position="absolute"
+            width="8px"
+            height="8px"
+            borderRadius="full"
+            bg="red.500"
+            transform={`translate(-50%, -50%)`}
+            animation={`vote-particle-${i} 1s ease-out forwards`}
+            sx={{
+              [`@keyframes vote-particle-${i}`]: {
+                '0%': {
+                  transform: `translate(calc(-50% + ${fromX}px), calc(-50% + ${fromY}px)) scale(0)`,
+                  opacity: 0
+                },
+                '20%': {
+                  transform: `translate(calc(-50% + ${fromX + (controlX - fromX) * 0.2}px), calc(-50% + ${fromY + (controlY - fromY) * 0.2}px)) scale(1)`,
+                  opacity: 1
+                },
+                '100%': {
+                  transform: `translate(calc(-50% + ${toX}px), calc(-50% + ${toY}px)) scale(0)`,
+                  opacity: 0
+                }
               }
-            }
-          }}
-          boxShadow="0 0 10px red"
-        />
+            }}
+            boxShadow="0 0 15px red"
+            style={{
+              animationDelay: `${i * 0.1}s`
+            }}
+          />
+        ))}
       </Box>
     );
   };
@@ -1011,7 +1047,7 @@ export const GameInProgress: React.FC = () => {
       >
         <ModalHeader>Résultats des Votes</ModalHeader>
         <ModalBody>
-          <VStack spacing={4}>
+            <VStack spacing={4}>
             {Object.entries(voteResults)
               .sort(([, a], [, b]) => b - a)
               .map(([playerId, count]) => {
@@ -1431,6 +1467,68 @@ export const GameInProgress: React.FC = () => {
     );
   };
 
+  // Modal de confirmation de vote
+  const VoteConfirmationModal = () => (
+    <Modal 
+      isOpen={!!selectedVoteTarget} 
+      onClose={() => setSelectedVoteTarget(null)}
+      isCentered
+    >
+      <ModalOverlay backdropFilter="blur(10px)" />
+      <ModalContent
+        bg="rgba(26, 32, 44, 0.95)"
+        borderWidth={1}
+        borderColor="purple.500"
+        boxShadow="0 0 30px rgba(159, 122, 234, 0.4)"
+        color="white"
+      >
+        <ModalHeader>Confirmer votre vote</ModalHeader>
+        <ModalBody>
+          {selectedVoteTarget && (
+            <VStack spacing={4}>
+              <Text>Êtes-vous sûr de vouloir voter contre :</Text>
+              <HStack spacing={3} p={4} bg="whiteAlpha.100" borderRadius="md">
+                <Avatar 
+                  size="md" 
+                  name={players.find(p => p.id === selectedVoteTarget)?.username}
+                  src={players.find(p => p.id === selectedVoteTarget)?.avatar}
+                />
+                <Box>
+                  <Text fontWeight="bold">
+                    {players.find(p => p.id === selectedVoteTarget)?.username}
+                  </Text>
+                  <Text fontSize="sm" color="gray.400">
+                    Ce vote sera définitif
+                  </Text>
+                </Box>
+              </HStack>
+            </VStack>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="ghost"
+            mr={3}
+            onClick={() => setSelectedVoteTarget(null)}
+          >
+            Annuler
+          </Button>
+          <Button
+            colorScheme="red"
+            onClick={() => {
+              if (selectedVoteTarget) {
+                handleVote(selectedVoteTarget);
+                setSelectedVoteTarget(null);
+              }
+            }}
+          >
+            Confirmer le vote
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+
   return (
     <Box position="relative" minH="100vh" bg={bgColor}>
       {/* Animation de transition de phase */}
@@ -1460,15 +1558,15 @@ export const GameInProgress: React.FC = () => {
                   <VStack spacing={4} align="stretch">
                     <Text fontSize="lg" color="purple.400" fontWeight="bold">
                       Phase actuelle : {PHASE_NAMES[currentPhase.type]}
-                    </Text>
+                  </Text>
                     <Box>
                       <Text color="gray.300" mb={2}>
                         Actions à effectuer :
-                      </Text>
+                  </Text>
                       <UnorderedList spacing={2} styleType="none">
                         {renderPhaseActions(currentPhase.type)}
                       </UnorderedList>
-                    </Box>
+                </Box>
                   </VStack>
                 </Box>
 
@@ -1690,7 +1788,7 @@ export const GameInProgress: React.FC = () => {
                         </Box>
                       );
                     })}
-                  </VStack>
+            </VStack>
                 </Box>
 
                 {players.map((player, index) => (
@@ -1859,17 +1957,17 @@ export const GameInProgress: React.FC = () => {
                             <Text color="gray.300">{message.content as string}</Text>
                           ) : (
                             <HStack spacing={2}>
-                              <Button
+          <Button
                                 leftIcon={message.type === 'audio' ? <FaMicrophone /> : <FaVideo />}
                                 onClick={() => handlePlayMessage(message as MediaMessage)}
                                 colorScheme="purple"
                                 size="sm"
                               >
                                 {message.type === 'audio' ? 'Écouter' : 'Voir'}
-                              </Button>
-                              <Button
+          </Button>
+          <Button
                                 leftIcon={<FaComments />}
-                                onClick={() => {
+            onClick={() => {
                                   setSelectedCommunication({
                                     type: message.type,
                                     playerId: players.find(p => p.username === message.from)?.id || ''
@@ -2064,10 +2162,10 @@ export const GameInProgress: React.FC = () => {
               _hover={{ bg: 'whiteAlpha.100' }}
             >
               Annuler
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
 
       {/* Modal de lecture */}
       <Modal 
@@ -2172,7 +2270,7 @@ export const GameInProgress: React.FC = () => {
                 p={6}
               >
                 {currentInterview && (
-                  <VStack spacing={4}>
+            <VStack spacing={4}>
                     <HStack spacing={4} align="center">
                       <Avatar 
                         size="lg"
@@ -2186,7 +2284,7 @@ export const GameInProgress: React.FC = () => {
                         </Heading>
                         <Text color="gray.300" mt={2}>
                           {woolfyQuestions.find(q => q.id === currentInterview.questionId)?.text}
-                        </Text>
+              </Text>
                       </Box>
                     </HStack>
 
@@ -2215,11 +2313,11 @@ export const GameInProgress: React.FC = () => {
                         />
                       </AspectRatio>
                       {currentInterview.isRecording && (
-                        <Box
-                          position="absolute"
+                      <Box
+                        position="absolute"
                           top={2}
                           right={2}
-                          bg="red.500"
+                        bg="red.500"
                           borderRadius="full"
                           w={3}
                           h={3}
@@ -2291,11 +2389,11 @@ export const GameInProgress: React.FC = () => {
                         {!canStopRecording ? 
                           "Attendez encore quelques secondes avant de pouvoir terminer l'enregistrement..." : 
                           "Vous pouvez maintenant terminer l'enregistrement"}
-                      </Text>
+                            </Text>
                     )}
                   </VStack>
                 )}
-              </Box>
+                          </Box>
             </VStack>
           </ModalBody>
         </ModalContent>
@@ -2303,6 +2401,7 @@ export const GameInProgress: React.FC = () => {
 
       {/* Modal de résumé des votes */}
       <VoteSummaryModal />
+      <VoteConfirmationModal />
     </Box>
-  );
-};
+    );
+  };
