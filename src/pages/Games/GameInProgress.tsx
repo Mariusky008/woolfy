@@ -882,24 +882,169 @@ export const GameInProgress: React.FC = () => {
     return (index * (2 * Math.PI) / totalPlayers);
   };
 
+  // Ajouter les nouveaux états pour le vote
+  const [voteAnimation, setVoteAnimation] = useState<{
+    fromId: string;
+    toId: string;
+    active: boolean;
+  } | null>(null);
+  const [voteResults, setVoteResults] = useState<{
+    [key: string]: number;
+  }>({});
+  const [showVoteSummary, setShowVoteSummary] = useState(false);
+
+  // Fonction améliorée pour gérer les votes
   const handleVote = (targetId: string) => {
     const currentPlayer = players.find(p => p.isCurrent);
     if (currentPlayer) {
-      setVotes(prev => ({
-        ...prev,
-        [currentPlayer.id]: targetId
-      }));
-      toast({
-        title: "Vote enregistré",
-        description: `Vous avez voté pour ${players.find(p => p.id === targetId)?.username}`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right"
+      // Animer le vote
+      setVoteAnimation({
+        fromId: currentPlayer.id,
+        toId: targetId,
+        active: true
       });
-      setSelectedVoteTarget(null);
+
+      // Mettre à jour les votes après l'animation
+      setTimeout(() => {
+        setVotes(prev => ({
+          ...prev,
+          [currentPlayer.id]: targetId
+        }));
+
+        // Mettre à jour les résultats
+        setVoteResults(prev => ({
+          ...prev,
+          [targetId]: (prev[targetId] || 0) + 1
+        }));
+
+        setVoteAnimation(null);
+        setSelectedVoteTarget(null);
+
+        // Notification de vote
+        toast({
+          title: "Vote enregistré",
+          description: `Vous avez voté pour ${players.find(p => p.id === targetId)?.username}`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right"
+        });
+
+        // Vérifier si tous les joueurs ont voté
+        const alivePlayers = players.filter(p => p.isAlive).length;
+        const totalVotes = Object.keys(votes).length + 1; // +1 pour le vote actuel
+        if (totalVotes >= alivePlayers) {
+          setShowVoteSummary(true);
+        }
+      }, 1000);
     }
   };
+
+  // Composant pour l'animation du vote
+  const VoteAnimation = () => {
+    if (!voteAnimation) return null;
+
+    const fromPlayer = players.find(p => p.id === voteAnimation.fromId);
+    const toPlayer = players.find(p => p.id === voteAnimation.toId);
+    
+    if (!fromPlayer || !toPlayer) return null;
+
+    const fromAngle = calculatePlayerAngle(players.indexOf(fromPlayer));
+    const toAngle = calculatePlayerAngle(players.indexOf(toPlayer));
+    
+    const fromX = Math.cos(fromAngle) * gameAreaSize.radius;
+    const fromY = Math.sin(fromAngle) * gameAreaSize.radius;
+    const toX = Math.cos(toAngle) * gameAreaSize.radius;
+    const toY = Math.sin(toAngle) * gameAreaSize.radius;
+
+    return (
+      <Box
+        position="absolute"
+        top="50%"
+        left="50%"
+        width="100%"
+        height="100%"
+        pointerEvents="none"
+      >
+        <Box
+          position="absolute"
+          top="50%"
+          left="50%"
+          width="4px"
+          height="4px"
+          borderRadius="full"
+          bg="red.500"
+          transform={`translate(-50%, -50%)`}
+          animation="vote-particle 1s linear forwards"
+          sx={{
+            '@keyframes vote-particle': {
+              '0%': {
+                transform: `translate(calc(-50% + ${fromX}px), calc(-50% + ${fromY}px))`,
+                opacity: 1
+              },
+              '100%': {
+                transform: `translate(calc(-50% + ${toX}px), calc(-50% + ${toY}px))`,
+                opacity: 0
+              }
+            }
+          }}
+          boxShadow="0 0 10px red"
+        />
+      </Box>
+    );
+  };
+
+  // Modal de résumé des votes
+  const VoteSummaryModal = () => (
+    <Modal 
+      isOpen={showVoteSummary} 
+      onClose={() => setShowVoteSummary(false)}
+      isCentered
+    >
+      <ModalOverlay backdropFilter="blur(10px)" />
+      <ModalContent
+        bg="rgba(26, 32, 44, 0.95)"
+        borderWidth={1}
+        borderColor="purple.500"
+        boxShadow="0 0 30px rgba(159, 122, 234, 0.4)"
+        color="white"
+      >
+        <ModalHeader>Résultats des Votes</ModalHeader>
+        <ModalBody>
+          <VStack spacing={4}>
+            {Object.entries(voteResults)
+              .sort(([, a], [, b]) => b - a)
+              .map(([playerId, count]) => {
+                const player = players.find(p => p.id === playerId);
+                if (!player) return null;
+                
+                return (
+                  <Box
+                    key={playerId}
+                    w="100%"
+                    p={4}
+                    borderRadius="md"
+                    borderWidth="1px"
+                    borderColor="whiteAlpha.200"
+                    bg="whiteAlpha.100"
+                  >
+                    <HStack justify="space-between">
+                      <HStack>
+                        <Avatar size="sm" name={player.username} src={player.avatar} />
+                        <Text>{player.username}</Text>
+                      </HStack>
+                      <Badge colorScheme="purple" fontSize="lg" px={3} py={1}>
+                        {count} vote{count > 1 ? 's' : ''}
+                      </Badge>
+                    </HStack>
+                  </Box>
+                );
+              })}
+          </VStack>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+  );
 
   const navigate = useNavigate();
 
@@ -1171,8 +1316,126 @@ export const GameInProgress: React.FC = () => {
     return () => clearTimeout(timer);
   }, [currentPhase.type, startWoolfyInterview, toast]);
 
+  // Ajouter l'état pour l'animation de transition
+  const [phaseTransition, setPhaseTransition] = useState<{
+    from: GamePhaseType;
+    to: GamePhaseType;
+    active: boolean;
+  } | null>(null);
+
+  // Effet pour gérer les transitions de phase
+  useEffect(() => {
+    if (currentPhase.type) {
+      setPhaseTransition(prev => prev ? {
+        ...prev,
+        to: currentPhase.type,
+        active: true
+      } : null);
+
+      // Nettoyer l'animation après la transition
+      setTimeout(() => {
+        setPhaseTransition(null);
+      }, 2000);
+    }
+  }, [currentPhase.type]);
+
+  // Composant d'animation de transition de phase
+  const PhaseTransition = () => {
+    if (!phaseTransition?.active) return null;
+
+    const getTransitionContent = (phase: GamePhaseType) => {
+      switch (phase) {
+        case 'DAY':
+          return {
+            icon: <Icon as={GiSun} boxSize="100px" color="yellow.400" />,
+            text: "Le jour se lève...",
+            color: "yellow.400",
+            bgGradient: "linear(to-b, yellow.500, orange.500)"
+          };
+        case 'NIGHT':
+          return {
+            icon: <Icon as={GiMoonBats} boxSize="100px" color="purple.400" />,
+            text: "La nuit tombe...",
+            color: "purple.400",
+            bgGradient: "linear(to-b, purple.900, blue.900)"
+          };
+        case 'VOTE':
+          return {
+            icon: <Icon as={GiWoodenChair} boxSize="100px" color="red.400" />,
+            text: "L'heure du jugement est venue !",
+            color: "red.400",
+            bgGradient: "linear(to-b, red.900, purple.900)"
+          };
+        default:
+          return {
+            icon: null,
+            text: "",
+            color: "white",
+            bgGradient: "none"
+          };
+      }
+    };
+
+    const content = getTransitionContent(phaseTransition.to);
+
+    return (
+      <Box
+        position="fixed"
+        top={0}
+        left={0}
+        right={0}
+        bottom={0}
+        bgGradient={content.bgGradient}
+        zIndex={9999}
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flexDirection="column"
+        animation="fadeInOut 2s ease-in-out forwards"
+        sx={{
+          '@keyframes fadeInOut': {
+            '0%': { opacity: 0 },
+            '50%': { opacity: 1 },
+            '100%': { opacity: 0 }
+          }
+        }}
+      >
+        <Box
+          animation="scaleIn 0.5s ease-out"
+          sx={{
+            '@keyframes scaleIn': {
+              '0%': { transform: 'scale(0)' },
+              '100%': { transform: 'scale(1)' }
+            }
+          }}
+        >
+          {content.icon}
+        </Box>
+        <Text
+          fontSize="3xl"
+          fontWeight="bold"
+          color={content.color}
+          mt={4}
+          textShadow="0 0 10px black"
+          animation="slideUp 0.5s ease-out"
+          sx={{
+            '@keyframes slideUp': {
+              '0%': { transform: 'translateY(20px)', opacity: 0 },
+              '100%': { transform: 'translateY(0)', opacity: 1 }
+            }
+          }}
+        >
+          {content.text}
+        </Text>
+      </Box>
+    );
+  };
+
   return (
     <Box position="relative" minH="100vh" bg={bgColor}>
+      {/* Animation de transition de phase */}
+      <PhaseTransition />
+
       {/* Timer en haut */}
       <GameTimer timeRemaining={currentPhase.remainingTime} phase={currentPhase as GamePhase} />
 
@@ -1319,6 +1582,9 @@ export const GameInProgress: React.FC = () => {
                 alignItems="center"
                 justifyContent="center"
               >
+                {/* Animation des votes */}
+                <VoteAnimation />
+
                 {/* Liste des interviews récentes au centre */}
                 <Box
                   position="absolute"
@@ -2034,6 +2300,9 @@ export const GameInProgress: React.FC = () => {
           </ModalBody>
         </ModalContent>
       </Modal>
+
+      {/* Modal de résumé des votes */}
+      <VoteSummaryModal />
     </Box>
   );
 };
