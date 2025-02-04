@@ -125,15 +125,6 @@ export const Navbar = () => {
               )}
             </Box>
             <Button
-              leftIcon={<FaUser />}
-              variant="ghost"
-              colorScheme="purple"
-              size={{ base: "sm", md: "md" }}
-              onClick={() => navigate('/profile')}
-            >
-              <Text display={{ base: "none", md: "block" }}>Profil</Text>
-            </Button>
-            <Button
               leftIcon={<FaSignOutAlt />}
               variant="ghost"
               colorScheme="red"

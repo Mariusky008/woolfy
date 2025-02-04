@@ -10,15 +10,19 @@ import {
   Text,
   Box,
   Stack,
+  IconButton,
 } from '@chakra-ui/react'
 import { GiWolfHowl } from 'react-icons/gi'
+import { ChatIcon, EditIcon } from '@chakra-ui/icons'
 import { Profile } from '../../types/profile'
 
 interface ProfileHeaderProps {
   profile: Profile
+  onEditClick: () => void
+  onChatClick: () => void
 }
 
-export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile }) => {
+export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, onEditClick, onChatClick }) => {
   return (
     <Stack
       direction={{ base: 'column', md: 'row' }}
@@ -37,7 +41,25 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile }) => {
       />
       <VStack align={{ base: 'center', md: 'start' }} spacing={4} flex="1">
         <Box textAlign={{ base: 'center', md: 'left' }} w="full">
-          <Heading size="lg" mb={2}>{profile.username}</Heading>
+          <HStack justify="space-between" mb={2}>
+            <Heading size="lg">{profile.username}</Heading>
+            <HStack>
+              <IconButton
+                aria-label="Modifier le profil"
+                icon={<EditIcon />}
+                onClick={onEditClick}
+                variant="ghost"
+                colorScheme="purple"
+              />
+              <IconButton
+                aria-label="Ouvrir le chat"
+                icon={<ChatIcon />}
+                onClick={onChatClick}
+                variant="ghost"
+                colorScheme="purple"
+              />
+            </HStack>
+          </HStack>
           <Tag size="lg" colorScheme="yellow" mb={4}>
             <TagLeftIcon as={GiWolfHowl} />
             <TagLabel>Niveau Expert</TagLabel>

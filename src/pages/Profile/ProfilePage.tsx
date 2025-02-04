@@ -20,12 +20,52 @@ import { ChatDrawer } from '../../components/profile/ChatDrawer'
 import { RoleStats } from '../../components/profile/RoleStats'
 import { NationalRanking } from '../../components/profile/NationalRanking'
 import { EditProfileModal } from '../../components/profile/EditProfileModal'
-import { GameHistoryPlayer, GameHistory as IGameHistory, Profile, ProfileStats as IProfileStats, RoleStats as IRoleStats } from '../../types/profile'
+import { ServicesSection } from '../../components/profile/ServicesSection'
+import { GameHistoryPlayer, GameHistory as IGameHistory, Profile, ProfileStats as IProfileStats, RoleStats as IRoleStats, ProfileRank } from '../../types/profile'
 import { Navbar } from '../../components/Navbar'
 import { messageService } from '../../services/MessageService'
 import { useAuthStore } from '../../stores/authStore'
 import { useNavigate } from 'react-router-dom'
 import './styles/profile.css'
+
+const convertUserToProfile = (user: any): Profile => {
+  return {
+    username: user.username || '',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    joinedAt: user.createdAt || new Date(),
+    lastActive: user.lastActive || new Date(),
+    status: user.status || 'offline',
+    stats: {
+      gamesPlayed: user.gamesPlayed || 0,
+      gamesWon: user.gamesWon || 0,
+      winRate: user.gamesPlayed ? `${((user.gamesWon / user.gamesPlayed) * 100).toFixed(1)}%` : '0%',
+      reputation: user.points || 0,
+      correctAccusations: user.correctAccusations || 0,
+      totalAccusations: user.totalAccusations || 0,
+      totalKills: user.totalKills || 0,
+      favoriteRole: user.favoriteRole || '',
+      totalPoints: user.points || 0,
+      nationalRank: 0
+    },
+    badges: user.badges?.map((id: string) => ({
+      id,
+      name: 'Badge',
+      rarity: 'common' as const,
+      description: ''
+    })) || [],
+    rank: {
+      current: user.rank || 'Louveteau',
+      progress: 0,
+      season: 'Saison 1',
+      points: user.points || 0,
+      rank: 0,
+      tier: user.rank || 'Louveteau',
+      division: 'IV'
+    },
+    roles: []
+  }
+}
 
 export const ProfilePage: React.FC = () => {
   const [showChat, setShowChat] = useState(false)
@@ -35,7 +75,8 @@ export const ProfilePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const toast = useToast()
   const navigate = useNavigate()
-  const { user, isAuthenticated } = useAuthStore()
+  const { user: authUser, isAuthenticated } = useAuthStore()
+  const [user, setUser] = useState<Profile>(convertUserToProfile(authUser || {}))
 
   // Rediriger vers la page de connexion si non authentifié
   useEffect(() => {
@@ -46,29 +87,168 @@ export const ProfilePage: React.FC = () => {
 
   // Charger l'historique des parties et les statistiques par rôle
   useEffect(() => {
-    if (user) {
-      Promise.all([
-        fetch(`/api/games/history/${user._id}`).then(res => res.json()),
-        fetch(`/api/profile/${user._id}/roles`).then(res => res.json())
-      ])
-        .then(([historyData, statsData]) => {
-          setGameHistory(historyData);
-          setRoleStats(statsData);
-          setIsLoading(false);
-        })
-        .catch(error => {
-          console.error('Error fetching data:', error);
-          toast({
-            title: 'Erreur',
-            description: 'Impossible de charger les données du profil',
-            status: 'error',
-            duration: 5000,
-            isClosable: true
-          });
-          setIsLoading(false);
-        });
+    if (authUser) {
+      console.log('Auth user data:', authUser);
+      const convertedProfile = convertUserToProfile(authUser);
+      console.log('Converted profile:', convertedProfile);
+      setUser(convertedProfile);
+      
+      // Utiliser les données d'exemple
+      const sampleGameHistory: IGameHistory[] = [
+        {
+          id: '1',
+          type: 'classic',
+          date: '2024-03-20',
+          duration: '15:30',
+          role: 'Loup-Garou',
+          result: 'Victoire',
+          points: 150,
+          players: [
+            {
+              id: '2',
+              username: 'AlphaWolf',
+              avatar: 'https://i.pravatar.cc/150?img=1',
+              role: 'Villageois',
+              result: 'Défaite',
+              reputation: 1200
+            },
+            {
+              id: '3',
+              username: 'MysticSeer',
+              avatar: 'https://i.pravatar.cc/150?img=2',
+              role: 'Voyante',
+              result: 'Défaite',
+              reputation: 980
+            },
+            {
+              id: '4',
+              username: 'NightHunter',
+              avatar: 'https://i.pravatar.cc/150?img=3',
+              role: 'Chasseur',
+              result: 'Défaite',
+              reputation: 1500
+            }
+          ]
+        },
+        {
+          id: '2',
+          type: 'elite',
+          date: '2024-03-19',
+          duration: '20:45',
+          role: 'Voyante',
+          result: 'Victoire',
+          points: 200,
+          players: [
+            {
+              id: '5',
+              username: 'ShadowBite',
+              avatar: 'https://i.pravatar.cc/150?img=4',
+              role: 'Loup-Garou',
+              result: 'Défaite',
+              reputation: 2200
+            },
+            {
+              id: '6',
+              username: 'MoonHowler',
+              avatar: 'https://i.pravatar.cc/150?img=5',
+              role: 'Sorcière',
+              result: 'Victoire',
+              reputation: 1800
+            }
+          ]
+        },
+        {
+          id: '3',
+          type: 'pro',
+          date: '2024-03-18',
+          duration: '12:15',
+          role: 'Chasseur',
+          result: 'Défaite',
+          points: -50,
+          players: [
+            {
+              id: '7',
+              username: 'WolfSlayer',
+              avatar: 'https://i.pravatar.cc/150?img=6',
+              role: 'Loup-Garou',
+              result: 'Victoire',
+              reputation: 1650
+            },
+            {
+              id: '8',
+              username: 'NightOracle',
+              avatar: 'https://i.pravatar.cc/150?img=7',
+              role: 'Voyante',
+              result: 'Défaite',
+              reputation: 1100
+            }
+          ]
+        }
+      ];
+
+      // Ajout des statistiques par rôle
+      const sampleRoleStats = [
+        {
+          role: 'Loup-Garou',
+          gamesPlayed: 25,
+          wins: 18,
+          winRate: 72.0,
+          kills: 45,
+          specialActions: 30,
+          averageGameDuration: '18:30',
+          bestStreak: 5
+        },
+        {
+          role: 'Voyante',
+          gamesPlayed: 20,
+          wins: 14,
+          winRate: 70.0,
+          specialActions: 60,
+          correctPredictions: 52,
+          averageGameDuration: '16:45',
+          bestStreak: 4
+        },
+        {
+          role: 'Sorcière',
+          gamesPlayed: 15,
+          wins: 10,
+          winRate: 66.7,
+          kills: 8,
+          specialActions: 25,
+          potionsUsed: 28,
+          averageGameDuration: '15:20',
+          bestStreak: 3
+        },
+        {
+          role: 'Chasseur',
+          gamesPlayed: 18,
+          wins: 12,
+          winRate: 66.7,
+          kills: 15,
+          specialActions: 16,
+          revengeKills: 10,
+          averageGameDuration: '17:15',
+          bestStreak: 3
+        },
+        {
+          role: 'Cupidon',
+          gamesPlayed: 12,
+          wins: 8,
+          winRate: 66.7,
+          specialActions: 12,
+          successfulCouples: 9,
+          averageGameDuration: '19:30',
+          bestStreak: 2
+        }
+      ];
+
+      setGameHistory(sampleGameHistory);
+      setRoleStats(sampleRoleStats);
+      setIsLoading(false);
+    } else {
+      console.log('No auth user data available');
     }
-  }, [user]);
+  }, [authUser]);
 
   // Connect to message service when chat is opened
   useEffect(() => {
@@ -151,142 +331,13 @@ export const ProfilePage: React.FC = () => {
     }
   }
 
-  if (!user) {
+  if (!authUser) {
     return (
       <Center minH="100vh" className="profile-page">
         <div className="cyberpunk-grid" />
         <Spinner size="xl" color="var(--color-neon)" />
       </Center>
     )
-  }
-
-  // Dans la fonction ProfilePage, avant le return, ajoutons des données d'exemple :
-  const sampleGameHistory: IGameHistory[] = [
-    {
-      id: '1',
-      type: 'classic',
-      date: '2024-03-20',
-      duration: '15:30',
-      role: 'Loup-Garou',
-      result: 'Victoire',
-      points: 150,
-      players: [
-        {
-          id: '2',
-          username: 'AlphaWolf',
-          avatar: 'https://i.pravatar.cc/150?img=1',
-          role: 'Villageois',
-          result: 'Défaite',
-          reputation: 1200
-        },
-        {
-          id: '3',
-          username: 'MysticSeer',
-          avatar: 'https://i.pravatar.cc/150?img=2',
-          role: 'Voyante',
-          result: 'Défaite',
-          reputation: 980
-        },
-        {
-          id: '4',
-          username: 'NightHunter',
-          avatar: 'https://i.pravatar.cc/150?img=3',
-          role: 'Chasseur',
-          result: 'Défaite',
-          reputation: 1500
-        }
-      ]
-    }
-  ];
-
-  // Ajout de badges d'exemple
-  const sampleBadges = [
-    {
-      id: 'first-win',
-      name: 'Première Victoire',
-      rarity: 'common' as const,
-      description: 'A remporté sa première partie'
-    },
-    {
-      id: 'master-wolf',
-      name: 'Maître Loup',
-      rarity: 'epic' as const,
-      description: 'A gagné 50 parties en tant que Loup-Garou'
-    },
-    {
-      id: 'perfect-seer',
-      name: 'Voyante Parfaite',
-      rarity: 'legendary' as const,
-      description: 'A correctement identifié 10 Loups-Garous consécutifs'
-    }
-  ];
-
-  // Ajout des statistiques par rôle
-  const sampleRoleStats = [
-    {
-      role: 'Loup-Garou',
-      gamesPlayed: 15,
-      wins: 10,
-      winRate: 66.7,
-      kills: 12,
-      specialActions: 8
-    },
-    {
-      role: 'Voyante',
-      gamesPlayed: 12,
-      wins: 8,
-      winRate: 66.7,
-      specialActions: 24
-    },
-    {
-      role: 'Sorcière',
-      gamesPlayed: 8,
-      wins: 5,
-      winRate: 62.5,
-      kills: 3,
-      specialActions: 12
-    },
-    {
-      role: 'Chasseur',
-      gamesPlayed: 7,
-      wins: 5,
-      winRate: 71.4,
-      kills: 6,
-      specialActions: 7
-    }
-  ];
-
-  // Mise à jour des données du profil
-  const profileData: Profile = {
-    username: user.username,
-    avatar: user.avatar || '',
-    bio: user.bio || 'Chasseur de loups-garous expérimenté, spécialisé dans les accusations précises et les stratégies nocturnes.',
-    joinedAt: user.createdAt,
-    lastActive: user.lastActive,
-    status: user.status,
-    stats: {
-      gamesPlayed: 42,
-      gamesWon: 28,
-      winRate: '66.7%',
-      reputation: 1250,
-      correctAccusations: 35,
-      totalAccusations: 45,
-      totalKills: 15,
-      favoriteRole: 'Loup-Garou',
-      totalPoints: 3500,
-      nationalRank: 158
-    },
-    badges: sampleBadges,
-    rank: {
-      current: 'Loup Alpha',
-      progress: 75,
-      season: 'Saison 1',
-      points: 3500,
-      rank: 158,
-      tier: 'Alpha',
-      division: 'II'
-    },
-    roles: []
   }
 
   // Fonctions utilitaires pour le calcul du rang
@@ -329,79 +380,47 @@ export const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="profile-page">
+    <Box className="profile-page">
       <div className="cyberpunk-grid" />
       <Navbar />
-      <Container 
-        maxW="container.xl" 
-        className="profile-container" 
-        px={{ base: 4, md: 8 }} 
-        pt={{ base: "80px", md: "100px" }}
-      >
-        <VStack spacing={{ base: 6, md: 12 }} align="stretch">
-          <Box position="relative" className="profile-header">
-            <ProfileHeader profile={profileData} />
-            <IconButton
-              aria-label="Modifier le profil"
-              icon={<EditIcon />}
-              position="absolute"
-              top={{ base: 4, md: 6 }}
-              right={{ base: 4, md: 6 }}
-              onClick={() => setShowEditProfile(true)}
-              className="edit-button"
-              variant="ghost"
-              _hover={{
-                bg: 'rgba(0, 255, 242, 0.1)',
-                transform: 'scale(1.1)',
-              }}
-            />
+      <Container maxW="container.xl" py={8} mt="80px">
+        <VStack spacing={8} align="stretch">
+          <ProfileHeader
+            profile={user}
+            onEditClick={() => setShowEditProfile(true)}
+            onChatClick={() => setShowChat(true)}
+          />
+
+          {/* Ligne dédiée aux statistiques */}
+          <Box w="100%">
+            <ProfileStats stats={user.stats} />
           </Box>
 
-          <Box>
-            <ProfileStats stats={profileData.stats} />
-          </Box>
+          {/* Contenu principal */}
+          <Grid
+            templateColumns={{ base: "1fr", lg: "2fr 1fr" }}
+            gap={8}
+          >
+            <GridItem>
+              <VStack spacing={8} align="stretch">
+                <ServicesSection />
+                <GameHistory
+                  games={gameHistory}
+                  onInvitePlayer={handleInvitePlayer}
+                />
+                <RoleStats roles={roleStats} />
+              </VStack>
+            </GridItem>
 
-          <Box className="ranking-section" bg="rgba(10, 10, 15, 0.95)" p={6} borderRadius="xl">
-            <NationalRanking rank={profileData.rank} />
-          </Box>
-
-          <Box className="badges-section" bg="rgba(10, 10, 15, 0.95)" p={6} borderRadius="xl">
-            <Heading size="md" mb={6}>Badges et Réalisations</Heading>
-            <ProfileBadges badges={profileData.badges} />
-          </Box>
-
-          <Box className="role-stats-section" bg="rgba(10, 10, 15, 0.95)" p={6} borderRadius="xl">
-            <Heading size="md" mb={6}>Statistiques par Rôle</Heading>
-            <RoleStats roles={sampleRoleStats} />
-          </Box>
-
-          <Box className="game-history-section" bg="rgba(10, 10, 15, 0.95)" p={6} borderRadius="xl">
-            <Heading size="md" mb={6}>Parties Récentes</Heading>
-            <GameHistory 
-              games={sampleGameHistory}
-              onInvitePlayer={handleInvitePlayer}
-            />
-          </Box>
+            <GridItem>
+              <VStack spacing={8} align="stretch">
+                <ProfileBadges badges={user.badges} />
+                <NationalRanking rank={user.rank} />
+              </VStack>
+            </GridItem>
+          </Grid>
         </VStack>
       </Container>
-
-      <IconButton
-        aria-label="Chat"
-        icon={<ChatIcon />}
-        position="fixed"
-        bottom="4"
-        right="4"
-        size="lg"
-        onClick={() => setShowChat(true)}
-        className="chat-button"
-        variant="solid"
-        bg="var(--color-neon)"
-        color="black"
-        _hover={{
-          transform: 'scale(1.1)',
-          boxShadow: '0 0 20px var(--color-neon)',
-        }}
-      />
 
       <ChatDrawer
         isOpen={showChat}
@@ -412,10 +431,10 @@ export const ProfilePage: React.FC = () => {
         isOpen={showEditProfile}
         onClose={() => setShowEditProfile(false)}
         onSave={handleUpdateProfile}
-        currentAvatar={profileData.avatar}
-        currentBio={profileData.bio}
+        currentAvatar={user.avatar}
+        currentBio={user.bio}
       />
-    </div>
+    </Box>
   )
 }
 

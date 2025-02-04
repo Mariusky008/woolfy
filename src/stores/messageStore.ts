@@ -1,34 +1,30 @@
 import { create } from 'zustand'
-import io from 'socket.io-client'
+import type { Socket } from 'socket.io-client'
 import { IMessage, IConversation } from '../types/message'
 import { ChatMessage } from '../types/profile'
 
-interface MessageState {
-  // Socket.IO
-  socket: ReturnType<typeof io> | null
-  isConnected: boolean
-  
-  // Conversations
-  conversations: IConversation[]
-  currentConversationId: string | null
-  unreadCount: number
-  
-  // Messages
-  messages: IMessage[]
-  isLoadingMessages: boolean
-  
-  // Actions
-  setSocket: (socket: ReturnType<typeof io> | null) => void
-  setIsConnected: (isConnected: boolean) => void
-  setConversations: (conversations: IConversation[]) => void
-  setCurrentConversationId: (id: string | null) => void
-  setMessages: (messages: IMessage[]) => void
-  addMessage: (message: IMessage) => void
-  setIsLoadingMessages: (isLoading: boolean) => void
-  updateUnreadCount: (count: number) => void
-  markMessageAsRead: (messageId: string) => void
-  updateGameInviteStatus: (messageId: string, status: 'accepted' | 'rejected') => void
-  updateConversation: (conversationId: string, updates: Partial<IConversation>) => void
+interface ServiceRequest {
+  type: 'service_request'
+  service: string
+  points: number
+  description: string
+  requesterId: string
+  requesterName?: string
+  requesterAvatar?: string
+  timestamp: Date
+}
+
+interface Message {
+  id: string | number
+  from: string
+  content: string
+  timestamp: string
+  read: boolean
+  type?: 'text' | 'game_invite' | 'service_response'
+  gameData?: {
+    date: string
+    role: string
+  }
 }
 
 interface Conversation {
@@ -40,15 +36,29 @@ interface Conversation {
     timestamp: string
   }
   unreadCount: number
-  messages: ChatMessage[]
+  messages: Message[]
 }
 
 interface MessageStore {
+  // Socket state
+  socket: Socket | null
+  isConnected: boolean
+  connectionError: string | null
+  
+  // Conversations & Messages
   conversations: Conversation[]
   currentConversationId: string | null
+  serviceRequests: ServiceRequest[]
+  
+  // Actions
+  setSocket: (socket: Socket | null) => void
+  setIsConnected: (status: boolean) => void
+  setConnectionError: (error: string | null) => void
   setCurrentConversationId: (id: string | null) => void
-  addMessage: (conversationId: string, message: ChatMessage) => void
-  setMessages: (conversationId: string, messages: ChatMessage[]) => void
+  addMessage: (message: Message) => void
+  addServiceRequest: (request: ServiceRequest) => void
+  removeServiceRequest: (requesterId: string, service: string) => void
+  updateUnreadCount: (conversationId: string, count: number) => void
   markAsRead: (conversationId: string) => void
 }
 
@@ -140,52 +150,67 @@ const sampleConversations: Conversation[] = [
 ];
 
 export const useMessageStore = create<MessageStore>((set) => ({
+  // Initial state
+  socket: null,
+  isConnected: false,
+  connectionError: null,
   conversations: sampleConversations,
   currentConversationId: null,
+  serviceRequests: [],
+
+  // Actions
+  setSocket: (socket) => set({ socket }),
+  setIsConnected: (status) => set({ isConnected: status, connectionError: status ? null : undefined }),
+  setConnectionError: (error) => set({ connectionError: error, isConnected: false }),
   setCurrentConversationId: (id) => set({ currentConversationId: id }),
-  addMessage: (conversationId, message) =>
-    set((state) => ({
-      conversations: state.conversations.map((conv) =>
-        conv._id === conversationId
-          ? {
-              ...conv,
-              messages: [...conv.messages, message],
-              lastMessage: {
-                content: message.content,
-                timestamp: message.timestamp
-              },
-              unreadCount: conv.unreadCount + 1
-            }
-          : conv
-      )
-    })),
-  setMessages: (conversationId, messages) =>
-    set((state) => ({
-      conversations: state.conversations.map((conv) =>
-        conv._id === conversationId
-          ? {
-              ...conv,
-              messages,
-              lastMessage: messages[messages.length - 1]
-                ? {
-                    content: messages[messages.length - 1].content,
-                    timestamp: messages[messages.length - 1].timestamp
-                  }
-                : conv.lastMessage
-            }
-          : conv
-      )
-    })),
-  markAsRead: (conversationId) =>
-    set((state) => ({
-      conversations: state.conversations.map((conv) =>
-        conv._id === conversationId
-          ? {
-              ...conv,
-              unreadCount: 0,
-              messages: conv.messages.map((msg) => ({ ...msg, read: true }))
-            }
-          : conv
-      )
-    }))
-})) 
+  
+  addMessage: (message) => set((state) => {
+    const conversationId = state.currentConversationId
+    if (!conversationId) return state
+
+    const updatedConversations = state.conversations.map(conv => {
+      if (conv._id === conversationId) {
+        return {
+          ...conv,
+          messages: [...conv.messages, message],
+          lastMessage: {
+            content: message.content,
+            timestamp: message.timestamp
+          },
+          unreadCount: conv.unreadCount + 1
+        }
+      }
+      return conv
+    })
+
+    return { conversations: updatedConversations }
+  }),
+
+  addServiceRequest: (request) => set((state) => ({
+    serviceRequests: [request, ...state.serviceRequests]
+  })),
+
+  removeServiceRequest: (requesterId, service) => set((state) => ({
+    serviceRequests: state.serviceRequests.filter(
+      req => !(req.requesterId === requesterId && req.service === service)
+    )
+  })),
+
+  updateUnreadCount: (conversationId, count) => set((state) => ({
+    conversations: state.conversations.map((conv) =>
+      conv._id === conversationId ? { ...conv, unreadCount: count } : conv
+    )
+  })),
+
+  markAsRead: (conversationId) => set((state) => ({
+    conversations: state.conversations.map((conv) =>
+      conv._id === conversationId
+        ? {
+            ...conv,
+            unreadCount: 0,
+            messages: conv.messages.map((msg) => ({ ...msg, read: true }))
+          }
+        : conv
+    )
+  })),
+})); 
