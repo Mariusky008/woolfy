@@ -348,7 +348,7 @@ export const GamesList = () => {
                   {game.isPlayerRegistered && getGameStatus(game) === 'ready' && (
                     <Button
                       as={Link}
-                      to={`/games/in-progress/${game.id}`}
+                      to={`/games/${game.id}`}
                       bg="green.500"
                       color="white"
                       size="lg"
@@ -361,7 +361,7 @@ export const GamesList = () => {
                       }}
                       onClick={(e) => {
                         e.preventDefault();
-                        window.location.href = `/games/in-progress/${game.id}`;
+                        window.location.href = `/games/${game.id}`;
                       }}
                     >
                       Rejoindre la partie
