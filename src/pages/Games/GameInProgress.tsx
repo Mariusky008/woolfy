@@ -339,7 +339,7 @@ const PlayerChair: React.FC<PlayerChairProps> = ({ player, onCommunicate, angle,
               textAlign="center"
             >
               {player.username}
-            </Text>
+      </Text>
           </Box>
         </PopoverTrigger>
         <PopoverContent 
@@ -380,7 +380,7 @@ const PlayerChair: React.FC<PlayerChairProps> = ({ player, onCommunicate, angle,
             <VStack align="start" spacing={4}>
               <Text fontSize="sm" color="gray.300" fontStyle="italic">
                 {player.description}
-              </Text>
+      </Text>
               <SimpleGrid columns={2} spacing={4} w="full">
                 <Stat size="sm">
                   <StatLabel color="gray.400">Parties jouées</StatLabel>
@@ -399,7 +399,7 @@ const PlayerChair: React.FC<PlayerChairProps> = ({ player, onCommunicate, angle,
                   <StatNumber color="white">{player.stats?.winRate}</StatNumber>
                 </Stat>
               </SimpleGrid>
-            </VStack>
+    </VStack>
           </PopoverBody>
           <PopoverFooter borderColor={borderColor} p={4}>
             <HStack spacing={3} justify="center">
@@ -448,8 +448,8 @@ const PlayerChair: React.FC<PlayerChairProps> = ({ player, onCommunicate, angle,
           zIndex={0}
         />
       )}
-    </Box>
-  );
+  </Box>
+);
 };
 
 // Modifier les interfaces pour une meilleure gestion des types
@@ -506,13 +506,13 @@ const GameTimer: React.FC<{ timeRemaining: number; phase: GamePhase }> = ({ time
                 <Icon as={GiSun} color="yellow.400" boxSize="24px" />
               )}
               <Text fontSize="xl" color="white" fontWeight="bold">
-                {PHASE_NAMES[phase.type]}
-              </Text>
+            {PHASE_NAMES[phase.type]}
+          </Text>
             </HStack>
             <Text fontSize="2xl" color="white" fontWeight="bold">
               {`${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`}
-            </Text>
-          </HStack>
+          </Text>
+      </HStack>
 
           {/* Description de la phase */}
           <Text color="gray.300" flex={2} textAlign="center">
@@ -834,7 +834,7 @@ export const GameInProgress: React.FC = () => {
   const renderPhaseActions = (phaseType: string) => {
     switch (phaseType) {
       case 'SETUP':
-        return (
+    return (
           <>
             <ListItem>• Présentez-vous aux autres joueurs (vidéo obligatoire)</ListItem>
             <ListItem>• Découvrez votre rôle et vos capacités</ListItem>
@@ -954,14 +954,14 @@ export const GameInProgress: React.FC = () => {
                               .filter(p => p.isAlive)
                               .map(player => (
                                 <Button
-                                  key={player.id}
+          key={player.id}
                                   size="sm"
                                   variant={selectedVoteTarget === player.id ? "solid" : "outline"}
                                   colorScheme="purple"
                                   onClick={() => handleVote(player.id)}
                                   isDisabled={Object.values(votes).includes(player.id)}
                                 >
-                                  {player.username}
+            {player.username}
                                 </Button>
                               ))}
                           </SimpleGrid>
@@ -970,7 +970,7 @@ export const GameInProgress: React.FC = () => {
                     ) : (
                       <Text color="gray.300">
                         La phase de vote n'est pas encore commencée.
-                      </Text>
+                </Text>
                     )}
                   </VStack>
                 </Box>
@@ -1114,7 +1114,7 @@ export const GameInProgress: React.FC = () => {
                         <Icon as={GiWolfHowl} color="purple.400" boxSize="24px" />
                         <Text fontSize="lg" fontWeight="bold" color="purple.400">
                           {playerRole.name}
-                        </Text>
+                  </Text>
                       </HStack>
                       <Text color="gray.300">
                         {playerRole.description}
@@ -1234,16 +1234,16 @@ export const GameInProgress: React.FC = () => {
                                 Répondre
                               </Button>
                             </HStack>
-                          )}
-                        </VStack>
+          )}
+          </VStack>
                       </Box>
-                    ))}
+      ))}
                   </VStack>
                 </Box>
               </Box>
             </VStack>
           </GridItem>
-        </Grid>
+    </Grid>
       </Container>
 
       {/* Chat */}

@@ -8,6 +8,7 @@ import { ProfilePage } from "./pages/Profile/ProfilePage";
 import { GameInProgress } from "./pages/Games/GameInProgress";
 import { useAuthStore } from "./stores/authStore";
 import { GamePhaseProvider } from "./contexts/GamePhaseContext";
+import { GamePage } from "./pages/Games/GamePage";
 
 const App: React.FC = () => {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
@@ -32,6 +33,16 @@ const App: React.FC = () => {
               element={
                 isAuthenticated ? (
                   <GamesPage />
+                ) : (
+                  <Navigate to="/auth" replace />
+                )
+              }
+            />
+            <Route
+              path="/games/:id"
+              element={
+                isAuthenticated ? (
+                  <GamePage />
                 ) : (
                   <Navigate to="/auth" replace />
                 )
