@@ -63,10 +63,11 @@ import {
   Badge,
   chakra,
   Spacer,
+  AspectRatio,
 } from '@chakra-ui/react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { GiMagicSwirl, GiNotebook, GiWolfHowl, GiTrophyCup, GiLaurelCrown, GiDeathSkull, GiMoonBats, GiSun, GiWoodenChair } from 'react-icons/gi'
-import { TimeIcon, ChatIcon, PhoneIcon, ViewIcon, CloseIcon, SmallCloseIcon } from '@chakra-ui/icons'
+import { TimeIcon, ChatIcon, PhoneIcon, ViewIcon, CloseIcon, SmallCloseIcon, ViewOffIcon } from '@chakra-ui/icons'
 import { FaVideo, FaMicrophone, FaComments, FaUser } from 'react-icons/fa'
 import { useGamePhaseContext } from '../../contexts/GamePhaseContext'
 import { GamePhase, GamePhaseType, PHASE_NAMES, PHASE_DESCRIPTIONS } from '../../types/phases'
@@ -148,6 +149,85 @@ interface PlayerRole {
   description: string;
   team: 'assis' | 'pieges' | 'woolfy';
   abilities: string[];
+}
+
+interface WoolfyQuestion {
+  id: string;
+  text: string;
+  phase: GamePhaseType;
+  category: 'comportement' | 'strategie' | 'observation' | 'deduction';
+}
+
+const woolfyQuestions: WoolfyQuestion[] = [
+  {
+    id: '1',
+    text: "Si vous deviez protéger un joueur cette nuit, lequel choisiriez-vous et pourquoi ?",
+    phase: 'NIGHT',
+    category: 'strategie'
+  },
+  {
+    id: '2',
+    text: "Quel joueur vous semble le plus suspect jusqu'à présent et quels sont vos arguments ?",
+    phase: 'DAY',
+    category: 'observation'
+  },
+  {
+    id: '3',
+    text: "Comment interprétez-vous le comportement silencieux de certains joueurs ?",
+    phase: 'JUDGMENT',
+    category: 'comportement'
+  },
+  {
+    id: '4',
+    text: "Quels indices vous ont permis de suspecter ou d'innocenter des joueurs ?",
+    phase: 'DAY',
+    category: 'deduction'
+  },
+  {
+    id: '5',
+    text: "Si vous étiez Woolfy, quelle serait votre stratégie pour ne pas vous faire repérer ?",
+    phase: 'DAY',
+    category: 'strategie'
+  },
+  {
+    id: '6',
+    text: "Quel joueur vous semble le plus digne de confiance et pourquoi ?",
+    phase: 'JUDGMENT',
+    category: 'observation'
+  },
+  {
+    id: '7',
+    text: "Comment avez-vous interprété les derniers votes de l'assemblée ?",
+    phase: 'VOTE',
+    category: 'deduction'
+  },
+  {
+    id: '8',
+    text: "Quelles alliances pensez-vous avoir identifiées parmi les joueurs ?",
+    phase: 'DAY',
+    category: 'observation'
+  },
+  {
+    id: '9',
+    text: "Comment comptez-vous utiliser les informations récoltées pendant la nuit ?",
+    phase: 'NIGHT',
+    category: 'strategie'
+  },
+  {
+    id: '10',
+    text: "Quel joueur a selon vous changé de comportement récemment ?",
+    phase: 'JUDGMENT',
+    category: 'comportement'
+  }
+];
+
+interface WoolfyInterview {
+  id: string;
+  playerId: string;
+  questionId: string;
+  videoUrl: string;
+  timestamp: Date;
+  phase: GamePhaseType;
 }
 
 const roles: Record<string, PlayerRole> = {
@@ -339,7 +419,7 @@ const PlayerChair: React.FC<PlayerChairProps> = ({ player, onCommunicate, angle,
               textAlign="center"
             >
               {player.username}
-      </Text>
+            </Text>
           </Box>
         </PopoverTrigger>
         <PopoverContent 
@@ -380,7 +460,7 @@ const PlayerChair: React.FC<PlayerChairProps> = ({ player, onCommunicate, angle,
             <VStack align="start" spacing={4}>
               <Text fontSize="sm" color="gray.300" fontStyle="italic">
                 {player.description}
-      </Text>
+              </Text>
               <SimpleGrid columns={2} spacing={4} w="full">
                 <Stat size="sm">
                   <StatLabel color="gray.400">Parties jouées</StatLabel>
@@ -399,7 +479,7 @@ const PlayerChair: React.FC<PlayerChairProps> = ({ player, onCommunicate, angle,
                   <StatNumber color="white">{player.stats?.winRate}</StatNumber>
                 </Stat>
               </SimpleGrid>
-    </VStack>
+            </VStack>
           </PopoverBody>
           <PopoverFooter borderColor={borderColor} p={4}>
             <HStack spacing={3} justify="center">
@@ -448,8 +528,8 @@ const PlayerChair: React.FC<PlayerChairProps> = ({ player, onCommunicate, angle,
           zIndex={0}
         />
       )}
-  </Box>
-);
+    </Box>
+  );
 };
 
 // Modifier les interfaces pour une meilleure gestion des types
@@ -896,6 +976,201 @@ export const GameInProgress: React.FC = () => {
     }
   };
 
+  const [woolfyInterviews, setWoolfyInterviews] = useState<WoolfyInterview[]>([]);
+  const [currentInterview, setCurrentInterview] = useState<{
+    playerId: string;
+    questionId: string;
+    isRecording: boolean;
+  } | null>(null);
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [canStopRecording, setCanStopRecording] = useState(false);
+  const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
+  const interviewVideoRef = useRef<HTMLVideoElement>(null);
+  const interviewRecorderRef = useRef<MediaRecorder | null>(null);
+
+  const startWoolfyInterview = useCallback(async () => {
+    // Vérifier si une interview est déjà en cours
+    if (showInterviewModal || currentInterview) {
+      console.log('Une interview est déjà en cours');
+      return;
+    }
+
+    // Vérifier le nombre d'interviews déjà réalisées dans cette phase
+    const currentPhaseInterviews = woolfyInterviews.filter(i => i.phase === currentPhase.type);
+    if (currentPhaseInterviews.length >= 6) {
+      console.log('Nombre maximum d\'interviews atteint pour cette phase');
+      return;
+    }
+
+    // Calculer le nombre de joueurs à interviewer
+    const alivePlayers = players.filter(p => p.isAlive);
+    const remainingInterviews = 6 - currentPhaseInterviews.length;
+    const minPlayers = Math.min(4, alivePlayers.length); // Au moins 4 joueurs différents ou tous si moins de 4 vivants
+    const maxPlayers = Math.min(remainingInterviews, alivePlayers.length); // Ne pas dépasser le nombre d'interviews restantes
+
+    // Sélectionner les joueurs qui n'ont pas encore été interviewés dans cette phase
+    const availablePlayers = alivePlayers.filter(p => 
+      !woolfyInterviews.some(i => 
+        i.playerId === p.id && 
+        i.phase === currentPhase.type
+      )
+    );
+
+    if (availablePlayers.length === 0) {
+      console.log('Plus de joueurs disponibles pour les interviews');
+      return;
+    }
+
+    // Mélanger les joueurs disponibles et prendre le nombre requis
+    const shuffledPlayers = [...availablePlayers].sort(() => Math.random() - 0.5);
+    const numPlayers = Math.max(minPlayers, Math.min(maxPlayers, shuffledPlayers.length));
+    const selectedPlayers = shuffledPlayers.slice(0, numPlayers);
+
+    // Variable pour suivre l'interview en cours
+    let currentInterviewIndex = 0;
+
+    const processNextInterview = async () => {
+      if (currentInterviewIndex >= selectedPlayers.length) {
+        return; // Toutes les interviews sont terminées
+      }
+
+      const player = selectedPlayers[currentInterviewIndex];
+      
+      // Vérifier si le joueur actuel est celui qui doit être interviewé
+      const currentPlayer = players.find(p => p.isCurrent);
+      if (!currentPlayer || currentPlayer.id !== player.id) {
+        // Si ce n'est pas le bon joueur, passer à l'interview suivante
+        currentInterviewIndex++;
+        setTimeout(() => {
+          processNextInterview();
+        }, 5000);
+        return;
+      }
+
+      // Sélectionner une question appropriée pour la phase actuelle
+      const phaseQuestions = woolfyQuestions.filter(q => q.phase === currentPhase.type);
+      if (phaseQuestions.length === 0) return;
+
+      const randomQuestion = phaseQuestions[Math.floor(Math.random() * phaseQuestions.length)];
+
+      // Préparer l'interview
+      setCurrentInterview({
+        playerId: player.id,
+        questionId: randomQuestion.id,
+        isRecording: false
+      });
+
+      try {
+        // Configurer la capture vidéo
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+
+        if (interviewVideoRef.current) {
+          interviewVideoRef.current.srcObject = stream;
+          await interviewVideoRef.current.play();
+        }
+
+        const recorder = new MediaRecorder(stream);
+        const chunks: BlobPart[] = [];
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunks.push(e.data);
+        };
+
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+
+          // Sauvegarder l'interview
+          const newInterview: WoolfyInterview = {
+            id: Date.now().toString(),
+            playerId: player.id,
+            questionId: randomQuestion.id,
+            videoUrl: url,
+            timestamp: new Date(),
+            phase: currentPhase.type
+          };
+
+          setWoolfyInterviews(prev => [...prev, newInterview]);
+
+          // Notifier tous les joueurs
+          toast({
+            title: "Nouvelle Interview !",
+            description: `${player.username} vient de répondre à une question de Madame Woolfy.`,
+            status: "info",
+            duration: 5000,
+            isClosable: true
+          });
+
+          // Nettoyer
+          stream.getTracks().forEach(track => track.stop());
+          setCurrentInterview(null);
+          setShowInterviewModal(false);
+
+          // Passer à l'interview suivante après un délai
+          currentInterviewIndex++;
+          setTimeout(() => {
+            processNextInterview();
+          }, 5000);
+        };
+
+        interviewRecorderRef.current = recorder;
+        setShowInterviewModal(true);
+
+      } catch (error) {
+        console.error('Erreur lors de la préparation de l\'interview:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de démarrer l'interview. Veuillez réessayer.",
+          status: "error",
+          duration: 3000,
+          isClosable: true
+        });
+        // En cas d'erreur, passer à l'interview suivante
+        currentInterviewIndex++;
+        setTimeout(() => {
+          processNextInterview();
+        }, 5000);
+      }
+    };
+
+    // Démarrer la première interview
+    processNextInterview();
+
+  }, [currentPhase.type, players, woolfyInterviews, toast, showInterviewModal, currentInterview]);
+
+  // Démarrer les interviews à des moments spécifiques
+  useEffect(() => {
+    // Ne déclencher les interviews que pendant les phases DAY et NIGHT
+    if (currentPhase.type !== 'DAY' && currentPhase.type !== 'NIGHT') {
+      return;
+    }
+
+    // Pour la phase DAY, attendre 30 secondes pour laisser les joueurs discuter d'abord
+    // Pour la phase NIGHT, démarrer plus tôt car c'est une phase d'action
+    const delay = currentPhase.type === 'DAY' ? 30000 : 10000;
+
+    const timer = setTimeout(() => {
+      // Notification pour prévenir que les interviews vont commencer
+      toast({
+        title: "Madame Woolfy arrive !",
+        description: "Les interviews vont bientôt commencer. Préparez-vous à répondre à ses questions.",
+        status: "info",
+        duration: 5000,
+        isClosable: true
+      });
+
+      // Démarrer les interviews 5 secondes après la notification
+      setTimeout(() => {
+        startWoolfyInterview();
+      }, 5000);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [currentPhase.type, startWoolfyInterview, toast]);
+
   return (
     <Box position="relative" minH="100vh" bg={bgColor}>
       {/* Timer en haut */}
@@ -1044,6 +1319,114 @@ export const GameInProgress: React.FC = () => {
                 alignItems="center"
                 justifyContent="center"
               >
+                {/* Liste des interviews récentes au centre */}
+                <Box
+                  position="absolute"
+                  top="50%"
+                  left="50%"
+                  transform="translate(-50%, -50%)"
+                  maxW="300px"
+                  bg="rgba(26, 32, 44, 0.95)"
+                  borderRadius="xl"
+                  borderWidth="1px"
+                  borderColor="purple.500"
+                  p={4}
+                  boxShadow="0 0 20px rgba(159, 122, 234, 0.3)"
+                  zIndex={2}
+                  backdropFilter="blur(10px)"
+                >
+                  <VStack spacing={3} align="stretch">
+                    <Heading size="sm" color="purple.400">
+                      Interviews Récentes
+                    </Heading>
+                    {woolfyInterviews.slice(-3).reverse().map(interview => {
+                      const player = players.find(p => p.id === interview.playerId);
+                      const question = woolfyQuestions.find(q => q.id === interview.questionId);
+                      return (
+                        <Box
+                          key={interview.id}
+                          p={2}
+                          borderRadius="md"
+                          borderWidth="1px"
+                          borderColor="whiteAlpha.200"
+                          _hover={{
+                            borderColor: "purple.500",
+                            bg: "whiteAlpha.100"
+                          }}
+                          cursor="pointer"
+                          onClick={() => {
+                            // Créer une modal pour voir la vidéo
+                            const modal = document.createElement('div');
+                            modal.style.position = 'fixed';
+                            modal.style.top = '0';
+                            modal.style.left = '0';
+                            modal.style.width = '100%';
+                            modal.style.height = '100%';
+                            modal.style.backgroundColor = 'rgba(0,0,0,0.9)';
+                            modal.style.display = 'flex';
+                            modal.style.justifyContent = 'center';
+                            modal.style.alignItems = 'center';
+                            modal.style.zIndex = '9999';
+
+                            const videoContainer = document.createElement('div');
+                            videoContainer.style.position = 'relative';
+                            videoContainer.style.width = '80%';
+                            videoContainer.style.maxWidth = '800px';
+
+                            const video = document.createElement('video');
+                            video.src = interview.videoUrl;
+                            video.controls = true;
+                            video.style.width = '100%';
+                            video.style.borderRadius = '8px';
+                            video.style.boxShadow = '0 0 20px rgba(129, 230, 217, 0.4)';
+
+                            const closeButton = document.createElement('button');
+                            closeButton.innerHTML = '×';
+                            closeButton.style.position = 'absolute';
+                            closeButton.style.top = '-40px';
+                            closeButton.style.right = '-40px';
+                            closeButton.style.background = 'none';
+                            closeButton.style.border = 'none';
+                            closeButton.style.color = 'white';
+                            closeButton.style.fontSize = '40px';
+                            closeButton.style.cursor = 'pointer';
+                            closeButton.style.padding = '10px';
+                            closeButton.style.lineHeight = '1';
+
+                            closeButton.addEventListener('click', () => {
+                              document.body.removeChild(modal);
+                            });
+
+                            videoContainer.appendChild(video);
+                            videoContainer.appendChild(closeButton);
+                            modal.appendChild(videoContainer);
+
+                            modal.addEventListener('click', (e) => {
+                              if (e.target === modal) {
+                                document.body.removeChild(modal);
+                              }
+                            });
+
+                            document.body.appendChild(modal);
+                          }}
+                        >
+                          <HStack spacing={3}>
+                            <Avatar size="sm" name={player?.username} src={player?.avatar} />
+                            <Box flex={1}>
+                              <Text fontSize="sm" fontWeight="bold" color="white">
+                                {player?.username}
+                              </Text>
+                              <Text fontSize="xs" color="gray.400" noOfLines={2}>
+                                {question?.text}
+                              </Text>
+                            </Box>
+                          </HStack>
+                        </Box>
+                      );
+                    })}
+                  </VStack>
+                </Box>
+
                 {players.map((player, index) => (
                   <PlayerChair
                     key={player.id}
@@ -1461,6 +1844,193 @@ export const GameInProgress: React.FC = () => {
                 )}
               </>
             )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal d'interview de Madame Woolfy */}
+      <Modal 
+        isOpen={showInterviewModal} 
+        onClose={() => {
+          // Empêcher la fermeture si l'interview n'est pas terminée
+          if (!currentInterview?.isRecording) {
+            toast({
+              title: "Action non autorisée",
+              description: "Vous devez répondre à la question de Madame Woolfy avant de pouvoir fermer cette fenêtre.",
+              status: "warning",
+              duration: 3000,
+              isClosable: true
+            });
+            return;
+          }
+          if (interviewRecorderRef.current) {
+            interviewRecorderRef.current.stop();
+          }
+          setShowInterviewModal(false);
+        }}
+        closeOnOverlayClick={false}
+        closeOnEsc={false}
+        size="xl"
+        isCentered
+      >
+        <ModalOverlay backdropFilter="blur(10px)" />
+        <ModalContent
+          bg="rgba(26, 32, 44, 0.95)"
+          borderWidth={1}
+          borderColor="purple.500"
+          boxShadow="0 0 30px rgba(159, 122, 234, 0.4)"
+          color="white"
+        >
+          <ModalHeader 
+            bg="purple.600" 
+            color="white"
+            py={4}
+            textAlign="center"
+            fontSize="2xl"
+            fontWeight="bold"
+            borderBottomWidth="4px"
+            borderBottomColor="purple.700"
+          >
+            Interview de Madame Woolfy
+            {!currentInterview?.isRecording && (
+              <Text fontSize="sm" color="red.200" mt={2}>
+                Vous devez répondre à cette question pour continuer
+              </Text>
+            )}
+          </ModalHeader>
+          <ModalBody p={0}>
+            <VStack spacing={0}>
+              <Box 
+                w="full"
+                bg="rgba(26, 32, 44, 0.95)"
+                p={6}
+              >
+                {currentInterview && (
+                  <VStack spacing={4}>
+                    <HStack spacing={4} align="center">
+                      <Avatar 
+                        size="lg"
+                        name="Madame Woolfy"
+                        src="/madame-woolfy.jpg"
+                        bg="purple.500"
+                      />
+                      <Box>
+                        <Heading size="md" color="purple.400">
+                          Question pour {players.find(p => p.id === currentInterview.playerId)?.username}
+                        </Heading>
+                        <Text color="gray.300" mt={2}>
+                          {woolfyQuestions.find(q => q.id === currentInterview.questionId)?.text}
+                        </Text>
+                      </Box>
+                    </HStack>
+
+                    <Box
+                      w="full"
+                      maxW="600px"
+                      borderRadius="xl"
+                      borderWidth="2px"
+                      borderColor="cyan.500"
+                      overflow="hidden"
+                      position="relative"
+                    >
+                      <AspectRatio ratio={16/9}>
+                        <video
+                          ref={interviewVideoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          style={{ 
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            transform: 'scaleX(-1)', // Pour effet miroir
+                            backgroundColor: 'rgba(26, 32, 44, 0.8)' // Fond sombre en attendant la vidéo
+                          }}
+                        />
+                      </AspectRatio>
+                      {currentInterview.isRecording && (
+                        <Box
+                          position="absolute"
+                          top={2}
+                          right={2}
+                          bg="red.500"
+                          borderRadius="full"
+                          w={3}
+                          h={3}
+                          animation="pulse 1.5s infinite"
+                          sx={{
+                            '@keyframes pulse': {
+                              '0%': { opacity: 1, transform: 'scale(1)' },
+                              '50%': { opacity: 0.5, transform: 'scale(1.2)' },
+                              '100%': { opacity: 1, transform: 'scale(1)' }
+                            }
+                          }}
+                        />
+                      )}
+                    </Box>
+
+                    <Button
+                      colorScheme={currentInterview.isRecording ? "red" : "green"}
+                      size="lg"
+                      leftIcon={currentInterview.isRecording ? <ViewOffIcon /> : <ViewIcon />}
+                      onClick={() => {
+                        if (!currentInterview.isRecording) {
+                          // Démarrer l'enregistrement
+                          if (interviewRecorderRef.current) {
+                            interviewRecorderRef.current.start();
+                            setCurrentInterview(prev => prev ? {
+                              ...prev,
+                              isRecording: true
+                            } : null);
+                            setRecordingStartTime(Date.now());
+                            setCanStopRecording(false);
+                            
+                            // Ajouter un message de confirmation
+                            toast({
+                              title: "Enregistrement démarré",
+                              description: "Répondez à la question de Madame Woolfy. L'enregistrement doit durer au moins 10 secondes.",
+                              status: "info",
+                              duration: 5000,
+                              isClosable: true
+                            });
+                            
+                            // Activer le bouton d'arrêt après 10 secondes
+                            setTimeout(() => {
+                              setCanStopRecording(true);
+                            }, 10000);
+                          }
+                        } else {
+                          // Vérifier si l'enregistrement a duré au moins 10 secondes
+                          if (canStopRecording && interviewRecorderRef.current) {
+                            interviewRecorderRef.current.stop();
+                            setRecordingStartTime(null);
+                            setCanStopRecording(false);
+                          } else {
+                            toast({
+                              title: "Enregistrement trop court",
+                              description: "L'enregistrement doit durer au moins 10 secondes.",
+                              status: "warning",
+                              duration: 3000,
+                              isClosable: true
+                            });
+                          }
+                        }
+                      }}
+                      isDisabled={currentInterview.isRecording && !canStopRecording}
+                    >
+                      {currentInterview.isRecording ? "Terminer l'enregistrement" : "Commencer l'enregistrement"}
+                    </Button>
+                    {currentInterview.isRecording && (
+                      <Text fontSize="sm" color="gray.300" textAlign="center">
+                        {!canStopRecording ? 
+                          "Attendez encore quelques secondes avant de pouvoir terminer l'enregistrement..." : 
+                          "Vous pouvez maintenant terminer l'enregistrement"}
+                      </Text>
+                    )}
+                  </VStack>
+                )}
+              </Box>
+            </VStack>
           </ModalBody>
         </ModalContent>
       </Modal>
