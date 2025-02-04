@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import './styles/home.css';
 
 declare global {
@@ -8,6 +8,8 @@ declare global {
 }
 
 const HomePage: React.FC = () => {
+  const [showRoles, setShowRoles] = useState(false);
+
   useEffect(() => {
     // Éviter les chargements multiples du script
     if (!document.getElementById('game-script')) {
@@ -76,9 +78,28 @@ const HomePage: React.FC = () => {
   return (
     <>
       <nav className="nav-header">
-        <div className="woolfy-icon">
-          <div className="woolfy-icon-inner">
-            <div className="woolfy-icon-eyes"></div>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{
+            width: '300px',
+            height: '300px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: '3rem',
+            marginLeft: '-5rem',
+            cursor: 'pointer'
+          }}>
+            <img 
+              src="/images/madame-wooly-b.png" 
+              alt="Madame Woolfy" 
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 0 8px rgba(255, 0, 255, 0.3))',
+                transition: 'all 0.3s ease'
+              }}
+            />
           </div>
         </div>
         <button className="login-button">Connexion</button>
@@ -88,15 +109,29 @@ const HomePage: React.FC = () => {
 
       <header className="hero">
         <div className="neon-grid"></div>
+        
+        <div className="hero-content glitch-container">
+          <h1 className="main-title glitch" data-text="Woolfy">Woolfy</h1>
+          <h2 className="subtitle neon-text">et les Chaises Piégées</h2>
+          <p className="tagline cyber-text">
+            Un jeu de bluff, de stratégie ... <br />qui se termine toujours par des rencontres <br />amicales et sentimentales 
+          </p>
+
+          <button className="cta-button glitch-button">
+            <span className="glitch-text" data-text="JOUER MAINTENANT">JOUER MAINTENANT</span>
+            <span className="button-effect"></span>
+          </button>
+        </div>
+
         <div className="game-room">
           <div className="circular-table">
             <div className="table-glow"></div>
             <div className="table-lines"></div>
             <div className="table-center">
               <div className="table-center-glow"></div>
-      </div>
+            </div>
 
-          <div className="chairs-container">
+            <div className="chairs-container">
               {/* Les chaises sont générées par le script */}
             </div>
             <div className="mascot-woolfy">
@@ -143,27 +178,6 @@ const HomePage: React.FC = () => {
             </div>
           </div>
         </div>
-
-        <div className="hero-content glitch-container">
-          <h1 className="main-title glitch" data-text="Woolfy">Woolfy</h1>
-          <h2 className="subtitle neon-text">et les Chaises Piégées</h2>
-          <p className="tagline cyber-text">
-            Un jeu de bluff, de stratégie et de trahison...<br />saurez-vous
-            rester assis jusqu'à la fin ?
-          </p>
-
-          <div className="countdown-container">
-            <p className="next-game">Prochaine partie dans</p>
-            <div className="countdown glitch">
-              <span className="time">03:24:10</span>
-            </div>
-          </div>
-
-          <button className="cta-button glitch-button">
-            <span className="glitch-text" data-text="JOUER MAINTENANT">JOUER MAINTENANT</span>
-            <span className="button-effect"></span>
-          </button>
-        </div>
       </header>
 
       <main>
@@ -184,7 +198,11 @@ const HomePage: React.FC = () => {
                   <p className="concept-description">
                     Dans un monde où la technologie rencontre la psychologie, 20 joueurs s'affrontent dans une 
                     partie mortelle autour d'une table holographique. Votre mission ? Survivre, démasquer Woolfy, 
-                    et éviter les chaises piégées qui pourraient sceller votre destin.
+                    et éviter les chaises piégées qui pourraient sceller votre destin. <br/>
+                    Après chaque élimination, Madame Woolfy vous propose un moment unique : répondre à une question vidéo 
+                    destinée à un(e) participant(e) de votre choix. 
+                    Une opportunité de créer des liens plus profonds avec quelqu'un qui vous a marqué(e).
+                    
                   </p>
                   <div className="concept-highlights">
                     <div className="highlight-item">
@@ -198,6 +216,10 @@ const HomePage: React.FC = () => {
                     <div className="highlight-item">
                       <span className="highlight-icon"><i className="fas fa-bomb"></i></span>
                       <span className="highlight-text">5 Pièges</span>
+                    </div>
+                    <div className="highlight-item">
+                      <span className="highlight-icon"><i className="fas fa-heart"></i></span>
+                      <span className="highlight-text">1 Rencontre</span>
                     </div>
                   </div>
                 </div>
@@ -261,6 +283,122 @@ const HomePage: React.FC = () => {
                 </div>
                 </div>
                 </div>
+              </div>
+
+              <div className="roles-section cyber-panel">
+                <button className="roles-toggle cyber-button glow-effect" onClick={() => setShowRoles(!showRoles)}>
+                  <i className={`fas fa-${showRoles ? 'eye-slash' : 'eye'}`}></i>
+                  <span>{showRoles ? 'Masquer les Rôles' : 'Découvrir les Rôles'}</span>
+                  <div className="button-effect"></div>
+                </button>
+
+                {showRoles && (
+                  <>
+                    <h3 className="roles-title">Les Rôles</h3>
+                    <div className="roles-grid">
+                      <div className="role-item">
+                        <div className="role-header">
+                          <img src="/roles/assis.svg" className="role-illustration" alt="Assis" />
+                          <h4>Assis</h4>
+                        </div>
+                        <div className="role-content">
+                          <p>Survivez et démasquez les traîtres qui ont piégé les chaises.</p>
+                          <ul className="role-abilities">
+                            <li>Vote diurne</li>
+                            <li>Communication publique</li>
+                            <li>Observation</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="role-item">
+                        <div className="role-header">
+                          <img src="/roles/piege.svg" className="role-illustration" alt="Piégé" />
+                          <h4>Piégé</h4>
+                        </div>
+                        <div className="role-content">
+                          <p>Éliminez les Assis sans vous faire repérer. Communiquez secrètement avec les autres Piégés.</p>
+                          <ul className="role-abilities">
+                            <li>Communication secrète entre Piégés</li>
+                            <li>Élimination nocturne</li>
+                            <li>Vote diurne</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="role-item">
+                        <div className="role-header">
+                          <img src="/roles/woolfy.svg" className="role-illustration" alt="Woolfy" />
+                          <h4>Woolfy</h4>
+                        </div>
+                        <div className="role-content">
+                          <p>Chasseur solitaire qui peut traquer et découvrir l'identité des autres joueurs.</p>
+                          <ul className="role-abilities">
+                            <li>La Traque - Découvrir si un joueur est Piégé ou Assis</li>
+                            <li>Communication secrète avec certains joueurs</li>
+                            <li>Risque d'être repéré si utilisation excessive des pouvoirs</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="role-item">
+                        <div className="role-header">
+                          <img src="/roles/protecteur.svg" className="role-illustration" alt="Protecteur" />
+                          <h4>Protecteur</h4>
+                        </div>
+                        <div className="role-content">
+                          <p>Protégez un joueur chaque nuit de l'attaque des Piégés.</p>
+                          <ul className="role-abilities">
+                            <li>Protection nocturne</li>
+                            <li>Ne peut pas protéger la même personne deux nuits de suite</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="role-item">
+                        <div className="role-header">
+                          <img src="/roles/espion.svg" className="role-illustration" alt="Espion" />
+                          <h4>Espion</h4>
+                        </div>
+                        <div className="role-content">
+                          <p>Écoutez une conversation privée entre Piégés sans connaître leur identité.</p>
+                          <ul className="role-abilities">
+                            <li>Écoute des conversations privées</li>
+                            <li>Anonymat des conversations écoutées</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="role-item">
+                        <div className="role-header">
+                          <img src="/roles/marionnettiste.svg" className="role-illustration" alt="Marionnettiste" />
+                          <h4>Marionnettiste</h4>
+                        </div>
+                        <div className="role-content">
+                          <p>Forcez un joueur à voter contre un autre pendant la phase du Jugement.</p>
+                          <ul className="role-abilities">
+                            <li>Manipulation des votes</li>
+                            <li>Communication secrète entre Piégés</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="role-item">
+                        <div className="role-header">
+                          <img src="/roles/ombre.svg" className="role-illustration" alt="Ombre" />
+                          <h4>Ombre</h4>
+                        </div>
+                        <div className="role-content">
+                          <p>Si vous êtes éliminé, vous pouvez emmener une autre personne avec vous dans la mort.</p>
+                          <ul className="role-abilities">
+                            <li>Vengeance mortelle</li>
+                            <li>Communication secrète entre Piégés</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -340,6 +478,189 @@ const HomePage: React.FC = () => {
         </div>
       </div>
     </div>
+        </section>
+
+        <section className="community cyber-section">
+          <div className="content-wrapper">
+            <div className="community-header glitch-container">
+              <h2 className="glitch-title" data-text="Plus qu'un Jeu">Plus qu'un Jeu</h2>
+              <div className="community-subtitle neon-text">Une communauté qui s'entraide</div>
+              <div className="cyber-line"></div>
+            </div>
+
+            {/* Section Services & Points - Style Grille */}
+            <div className="services-grid">
+              <div className="service-main-card cyber-panel glow-effect compact">
+                <div className="service-header">
+                  <i className="fas fa-gamepad neon-icon"></i>
+                  <h3 className="cyber-text">Gagnez en Jouant</h3>
+                </div>
+                <div className="points-list cyber-list">
+                  <div className="point-item">
+                    <span className="points">+100</span>
+                    <span className="description">par victoire</span>
+                  </div>
+                  <div className="point-item">
+                    <span className="points">+50</span>
+                    <span className="description">par participation</span>
+                  </div>
+                  <div className="point-item">
+                    <span className="points">+BONUS</span>
+                    <span className="description">streak quotidien</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="service-main-card cyber-panel glow-effect compact">
+                <div className="service-header">
+                  <i className="fas fa-users neon-icon"></i>
+                  <h3 className="cyber-text">Entraide Communautaire</h3>
+                </div>
+                <div className="points-list cyber-list">
+                  <div className="point-item">
+                    <span className="points">+500</span>
+                    <span className="description">Aide diverses (par heure)</span>
+                  </div>
+                  <div className="point-item">
+                    <span className="points">+300</span>
+                    <span className="description">Coaching (par heure)</span>
+                  </div>
+                  <div className="point-item">
+                    <span className="points">+400</span>
+                    <span className="description">Support (par heure)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rewards-showcase cyber-panel highlight-card compact">
+                <div className="service-header">
+                  <i className="fas fa-trophy neon-icon pulse"></i>
+                  <h3 className="cyber-text">Récompenses Exclusives</h3>
+                </div>
+                <div className="rewards-tiers">
+                  <div className="tier">
+                    <div className="tier-badge">
+                      <i className="fas fa-star"></i>
+                      <span>1,000</span>
+                    </div>
+                    <p>Cosmétiques exclusifs</p>
+                  </div>
+                  <div className="tier">
+                    <div className="tier-badge">
+                      <i className="fas fa-crown"></i>
+                      <span>5,000</span>
+                    </div>
+                    <p>Événements VIP et tournois spéciaux</p>
+                  </div>
+                  <div className="tier premium">
+                    <div className="tier-badge">
+                      <i className="fas fa-trophy"></i>
+                      <span>10,000</span>
+                    </div>
+                    <p>iPhone 15 reconditionné</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section Trust & Features */}
+            <div className="features-container">
+              <div className="features-grid">
+                
+
+
+                <div className="feature-card cyber-panel testimonial">
+                  <i className="fas fa-quote-right neon-icon"></i>
+                  <blockquote>
+                    "Woolfy, c'est plus qu'un jeu. C'est des rencontres et une communauté qui s'entraide et grandit ensemble."
+                  </blockquote>
+                  <div className="author">
+                    <span>Alex_Gaming</span>
+                    <div className="points">5,230 pts</div>
+                  </div>
+                </div>
+              </div>
+
+              <button className="cyber-button glow-effect">
+                <i className="fas fa-plus"></i>
+                <span>Demander un service</span>
+                <div className="button-effect"></div>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="relationships cyber-section">
+          <div className="content-wrapper">
+            <div className="relationships-header glitch-container">
+              <h2 className="glitch-title" data-text="Créez des Liens">Créez des Liens</h2>
+              <div className="relationships-subtitle neon-text">Des connexions authentiques naissent ici</div>
+              <div className="cyber-line"></div>
+            </div>
+
+            <div className="relationships-grid">
+              <div className="relationship-card cyber-panel">
+                <div className="card-icon">
+                  <i className="fas fa-heart neon-pulse"></i>
+                </div>
+                <div className="card-content">
+                  <h3>Rencontres Uniques</h3>
+                  <p>
+                    Au-delà du jeu, Woolfy crée des connexions authentiques. 
+                    De nombreux couples et amitiés se sont formés grâce à nos parties intenses 
+                    et nos discussions passionnées.
+                  </p>
+                </div>
+              </div>
+
+              <div className="relationship-card cyber-panel highlight-card">
+                <div className="madame-woolfy-container">
+                  <img src="/images/madame-woolfy.png" className="madame-woolfy-illustration" alt="Madame Woolfy" />
+                </div>
+                <div className="card-content">
+                  <h3>Interview Madame Woolfy</h3>
+                  <p>
+                    Après chaque élimination ou à la fin de chaque partie,
+                    Madame Woolfy vous propose un moment unique : 
+                    répondre à une question vidéo destinée à un(e) participant(e) de votre choix. 
+                    Une opportunité de créer des liens plus profonds avec quelqu'un qui vous a marqué(e).
+                  </p>
+                  <ul className="interview-features">
+                    <li>Choisissez la personne qui vous intrigue</li>
+                    <li>Répondez en toute sincérité</li>
+                    <li>La personne est libre d'y répondre ou non</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="relationship-card cyber-panel">
+                <div className="card-icon">
+                  <i className="fas fa-users-heart neon-pulse"></i>
+                </div>
+                <div className="card-content">
+                  <h3>Succès Stories</h3>
+                  <p>
+                    De l'amitié à l'amour, les histoires Woolfy sont nombreuses. 
+                    Nos joueurs témoignent régulièrement des liens forts créés grâce 
+                    à nos parties et au système unique d'interview de Madame Woolfy.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="testimonials-carousel">
+              <div className="testimonial cyber-panel">
+                <blockquote>
+                  "Grâce à l'interview de Madame Woolfy, j'ai osé faire le premier pas. 
+                  Aujourd'hui, nous sommes ensemble depuis 6 mois !"
+                </blockquote>
+                <div className="author">
+                  <span>Sarah & Thomas</span>
+                  <div className="hearts">❤️❤️❤️</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="cta-final cyber-section">
