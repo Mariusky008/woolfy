@@ -96,6 +96,7 @@ import {
   DuoMystere,
   DuoBonus
 } from '../../types/roles'
+import { MadameWoolfyModal } from '../../components/MadameWoolfyModal'
 
 // Importer MediaRecorder depuis le type global
 declare global {
@@ -228,6 +229,9 @@ interface WoolfyInterview {
   videoUrl: string;
   timestamp: Date;
   phase: GamePhaseType;
+  recipientId: string;
+  isResponse: boolean;
+  parentInterviewId?: string;
 }
 
 const roles: Record<string, PlayerRole> = {
@@ -295,8 +299,9 @@ const roles: Record<string, PlayerRole> = {
   }
 };
 
-const mockPlayers: Player[] = Array.from({ length: 15 }, (_, i) => ({
+const mockPlayers = Array.from({ length: 15 }, (_, i) => ({
   id: (i + 1).toString(),
+  name: prenoms[i],
   username: prenoms[i],
   avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${prenoms[i]}`,
   isAlive: true,
@@ -310,7 +315,8 @@ const mockPlayers: Player[] = Array.from({ length: 15 }, (_, i) => ({
     favoriteRole: 'Assis',
     winRate: `${Math.floor(Math.random() * 30) + 40}%`
   },
-  position: i
+  position: i,
+  score: Math.floor(Math.random() * 1000)
 }));
 
 interface PlayerChairProps {
@@ -1032,37 +1038,37 @@ export const GameInProgress: React.FC = () => {
 
   // Modal de résumé des votes
   const VoteSummaryModal = () => (
-    <Modal 
-      isOpen={showVoteSummary} 
-      onClose={() => setShowVoteSummary(false)}
-      isCentered
-    >
-      <ModalOverlay backdropFilter="blur(10px)" />
-      <ModalContent
-        bg="rgba(26, 32, 44, 0.95)"
-        borderWidth={1}
-        borderColor="purple.500"
-        boxShadow="0 0 30px rgba(159, 122, 234, 0.4)"
-        color="white"
+      <Modal 
+        isOpen={showVoteSummary} 
+        onClose={() => setShowVoteSummary(false)}
+        isCentered
       >
-        <ModalHeader>Résultats des Votes</ModalHeader>
-        <ModalBody>
+        <ModalOverlay backdropFilter="blur(10px)" />
+        <ModalContent
+          bg="rgba(26, 32, 44, 0.95)"
+          borderWidth={1}
+          borderColor="purple.500"
+          boxShadow="0 0 30px rgba(159, 122, 234, 0.4)"
+          color="white"
+        >
+          <ModalHeader>Résultats des Votes</ModalHeader>
+          <ModalBody>
             <VStack spacing={4}>
-            {Object.entries(voteResults)
-              .sort(([, a], [, b]) => b - a)
-              .map(([playerId, count]) => {
-                const player = players.find(p => p.id === playerId);
-                if (!player) return null;
-                
-                return (
-                  <Box
-                    key={playerId}
-                    w="100%"
-                    p={4}
-                    borderRadius="md"
-                    borderWidth="1px"
-                    borderColor="whiteAlpha.200"
-                    bg="whiteAlpha.100"
+              {Object.entries(voteResults)
+                .sort(([, a], [, b]) => b - a)
+                .map(([playerId, count]) => {
+                  const player = players.find(p => p.id === playerId);
+                  if (!player) return null;
+                  
+                  return (
+                    <Box
+                      key={playerId}
+                      w="100%"
+                      p={4}
+                      borderRadius="md"
+                      borderWidth="1px"
+                      borderColor="whiteAlpha.200"
+                      bg="whiteAlpha.100"
                   >
                     <HStack justify="space-between">
                       <HStack>
@@ -1271,7 +1277,10 @@ export const GameInProgress: React.FC = () => {
             questionId: randomQuestion.id,
             videoUrl: url,
             timestamp: new Date(),
-            phase: currentPhase.type
+            phase: currentPhase.type,
+            recipientId: '',
+            isResponse: false,
+            parentInterviewId: currentInterview?.id
           };
 
           setWoolfyInterviews(prev => [...prev, newInterview]);
@@ -1417,8 +1426,8 @@ export const GameInProgress: React.FC = () => {
     return (
       <Box
         position="fixed"
-        top={0}
-        left={0}
+                        top={0}
+                        left={0}
         right={0}
         bottom={0}
         bgGradient={content.bgGradient}
@@ -1493,15 +1502,15 @@ export const GameInProgress: React.FC = () => {
                   name={players.find(p => p.id === selectedVoteTarget)?.username}
                   src={players.find(p => p.id === selectedVoteTarget)?.avatar}
                 />
-                <Box>
+                          <Box>
                   <Text fontWeight="bold">
                     {players.find(p => p.id === selectedVoteTarget)?.username}
                   </Text>
-                  <Text fontSize="sm" color="gray.400">
+                            <Text fontSize="sm" color="gray.400">
                     Ce vote sera définitif
-                  </Text>
-                </Box>
-              </HStack>
+                            </Text>
+                          </Box>
+                        </HStack>
             </VStack>
           )}
         </ModalBody>
@@ -1528,6 +1537,87 @@ export const GameInProgress: React.FC = () => {
       </ModalContent>
     </Modal>
   );
+
+  const [showWoolfyModal, setShowWoolfyModal] = useState(false);
+  const [currentEliminatedPlayer, setCurrentEliminatedPlayer] = useState<Player | null>(null);
+  const [isWinnerInterview, setIsWinnerInterview] = useState(false);
+
+  // Ajouter dans les effets existants ou les gestionnaires d'événements
+  const handlePlayerElimination = useCallback((eliminatedPlayer: Player) => {
+    setCurrentEliminatedPlayer(eliminatedPlayer);
+    setIsWinnerInterview(false);
+    setShowWoolfyModal(true);
+  }, []);
+
+  const handleGameEnd = useCallback((winners: Player[]) => {
+    // Gérer chaque gagnant un par un
+    winners.forEach((winner, index) => {
+      setTimeout(() => {
+        setCurrentEliminatedPlayer(winner);
+        setIsWinnerInterview(true);
+        setShowWoolfyModal(true);
+      }, index * 1000); // Décaler l'affichage pour chaque gagnant
+    });
+  }, []);
+
+  const handleVideoSubmit = async (recipientId: string, videoBlob: Blob) => {
+    try {
+      // Créer un FormData pour l'upload
+      const formData = new FormData();
+      formData.append('video', videoBlob);
+      formData.append('recipientId', recipientId);
+      formData.append('senderId', currentEliminatedPlayer?.id || '');
+      formData.append('isWinnerMessage', isWinnerInterview.toString());
+
+      // Envoyer la vidéo au serveur
+      const response = await fetch('/api/woolfy-interviews', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de l\'envoi de la vidéo');
+      }
+
+      toast({
+        title: "Message vidéo envoyé !",
+        description: "Votre message a été envoyé avec succès.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de la vidéo:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'envoi de la vidéo.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Ajouter les effets pour gérer les éliminations et la fin de partie
+  useEffect(() => {
+    // Écouter les événements d'élimination
+    const handleElimination = (event: CustomEvent<{ player: Player }>) => {
+      handlePlayerElimination(event.detail.player);
+    };
+
+    // Écouter les événements de fin de partie
+    const handleGameEndEvent = (event: CustomEvent<{ winners: Player[] }>) => {
+      handleGameEnd(event.detail.winners);
+    };
+
+    window.addEventListener('playerEliminated', handleElimination as EventListener);
+    window.addEventListener('gameEnd', handleGameEndEvent as EventListener);
+
+    return () => {
+      window.removeEventListener('playerEliminated', handleElimination as EventListener);
+      window.removeEventListener('gameEnd', handleGameEndEvent as EventListener);
+    };
+  }, [handlePlayerElimination, handleGameEnd]);
 
   return (
     <Box position="relative" minH="100vh" bg={bgColor}>
@@ -1593,7 +1683,7 @@ export const GameInProgress: React.FC = () => {
           key={player.id}
                                   size="sm"
                                   variant={selectedVoteTarget === player.id ? "solid" : "outline"}
-                                  colorScheme="purple"
+                          colorScheme="purple"
                                   onClick={() => handleVote(player.id)}
                                   isDisabled={Object.values(votes).includes(player.id)}
                                 >
@@ -1660,7 +1750,7 @@ export const GameInProgress: React.FC = () => {
                   width="2px"
                   height="2px"
                   bg="white"
-                  borderRadius="full"
+                          borderRadius="full"
                   left={`${Math.random() * 100}%`}
                   top={`${Math.random() * 100}%`}
                   opacity={Math.random() * 0.7 + 0.3}
@@ -1784,10 +1874,10 @@ export const GameInProgress: React.FC = () => {
                                 {question?.text}
                               </Text>
                             </Box>
-                          </HStack>
-                        </Box>
-                      );
-                    })}
+                      </HStack>
+                    </Box>
+                  );
+                })}
             </VStack>
                 </Box>
 
@@ -2164,8 +2254,8 @@ export const GameInProgress: React.FC = () => {
               Annuler
           </Button>
         </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </ModalContent>
+      </Modal>
 
       {/* Modal de lecture */}
       <Modal 
@@ -2402,6 +2492,45 @@ export const GameInProgress: React.FC = () => {
       {/* Modal de résumé des votes */}
       <VoteSummaryModal />
       <VoteConfirmationModal />
+
+      <Box>
+        <Button
+          position="fixed"
+          top="20px"
+          right="20px"
+          colorScheme="purple"
+          onClick={startWoolfyInterview}
+          zIndex={1000}
+        >
+          Déclencher Interview Woolfy
+        </Button>
+      </Box>
+
+      {/* Bouton de test pour simuler une élimination */}
+      <Button
+        position="fixed"
+        bottom="20px"
+        right="20px"
+        colorScheme="red"
+        onClick={() => {
+          const eliminatedPlayer = mockPlayers[0]; // On prend le premier joueur pour le test
+          handlePlayerElimination(eliminatedPlayer);
+        }}
+        zIndex={1000}
+      >
+        Simuler Élimination
+      </Button>
+
+      {currentEliminatedPlayer && (
+        <MadameWoolfyModal
+          isOpen={showWoolfyModal}
+          onClose={() => setShowWoolfyModal(false)}
+          player={currentEliminatedPlayer}
+          players={mockPlayers}
+          isWinner={isWinnerInterview}
+          onVideoSubmit={handleVideoSubmit}
+        />
+      )}
     </Box>
     );
   };
