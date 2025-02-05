@@ -84,6 +84,7 @@ import {
 } from '../../types/phases'
 import MessageRecorder from '../../components/MessageRecorder'
 import { VillageChat } from '../../components/VillageChat'
+import { NightChat } from '../../components/chat/NightChat'
 import { 
   GameMessage,
   UserMessage,
@@ -109,6 +110,7 @@ import {
   WoolfyInterview,
   woolfyQuestions
 } from '../../types/game'
+import { nightChatService } from '../../services/NightChatService';
 
 // Importer MediaRecorder depuis le type global
 declare global {
@@ -253,7 +255,8 @@ const mockPlayers = Array.from({ length: 15 }, (_, i) => ({
     winRate: `${Math.floor(Math.random() * 30) + 40}%`
   },
   position: i,
-  score: Math.floor(Math.random() * 1000)
+  score: Math.floor(Math.random() * 1000),
+  role: i === 0 ? 'Woolfy' : i <= 3 ? 'Piege' : 'Assis' // Assigner les rôles
 }));
 
 interface PlayerChairProps {
@@ -591,6 +594,19 @@ interface GamePhaseState {
   startTime: Date;
   endTime: Date;
   remainingTime: number;
+}
+
+// Ajouter l'interface pour les messages du chat de nuit
+interface NightChatMessage {
+  id: string;
+  sender: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  content: string;
+  timestamp: Date;
+  encryptedContent?: string;
 }
 
 export const GameInProgress: React.FC = () => {
@@ -1795,6 +1811,32 @@ export const GameInProgress: React.FC = () => {
     }
   };
 
+  // Ajouter l'état pour les messages du chat de nuit
+  const [nightChatMessages, setNightChatMessages] = useState<NightChatMessage[]>([]);
+
+  // Ajouter l'effet pour gérer la connexion au chat de nuit
+  useEffect(() => {
+    if (currentPhase?.type === 'NIGHT' && gameId) {
+      // Connecter le service de chat de nuit
+      nightChatService.connect(gameId);
+
+      // S'abonner aux nouveaux messages
+      nightChatService.onMessage((message) => {
+        setNightChatMessages(prev => [...prev, message]);
+      });
+
+      // Récupérer l'historique des messages
+      nightChatService.getMessageHistory().then((messages) => {
+        setNightChatMessages(messages);
+      });
+
+      return () => {
+        // Déconnecter le service lors du nettoyage
+        nightChatService.disconnect();
+      };
+    }
+  }, [currentPhase?.type, gameId]);
+
   return (
     <Box position="relative" minH="100vh" bg={bgColor}>
       {/* Animation de transition de phase */}
@@ -2315,7 +2357,7 @@ export const GameInProgress: React.FC = () => {
           >
             <Icon as={ChatIcon} color="purple.400" boxSize="14px" />
             <Text fontSize="sm" color="purple.400" fontWeight="medium">
-              Chat du Village
+              {currentPhase?.type === 'NIGHT' ? 'Chat Privé' : 'Chat du Village'}
             </Text>
             <Spacer />
             <IconButton
@@ -2332,29 +2374,60 @@ export const GameInProgress: React.FC = () => {
           {!isChatMinimized && (
             <>
               <Box height="250px" overflowY="auto" p={3}>
-                <VillageChat />
+                {currentPhase?.type === 'NIGHT' ? (
+                  <NightChat
+                    currentPlayer={{
+                      id: players.find(p => p.isCurrent)?.id || '',
+                      name: players.find(p => p.isCurrent)?.username || '',
+                      role: players.find(p => p.isCurrent)?.role || 'Assis'
+                    }}
+                    players={players.map(player => ({
+                      id: player.id,
+                      name: player.username,
+                      role: player.role || 'Assis',
+                      isAlive: player.isAlive
+                    }))}
+                    messages={nightChatMessages}
+                    onSendMessage={(message) => {
+                      nightChatService.sendMessage(message).catch(error => {
+                        console.error('Erreur lors de l\'envoi du message:', error);
+                        toast({
+                          title: "Erreur",
+                          description: "Impossible d'envoyer le message",
+                          status: "error",
+                          duration: 3000,
+                          isClosable: true
+                        });
+                      });
+                    }}
+                  />
+                ) : (
+                  <VillageChat />
+                )}
               </Box>
 
-              <HStack p={2} bg="rgba(0, 0, 0, 0.3)" spacing={2}>
-                <Input
-                  placeholder="Message..."
-                  size="sm"
-                  bg="transparent"
-                  border="1px solid"
-                  borderColor="whiteAlpha.300"
-                  _hover={{ borderColor: 'purple.500' }}
-                  _focus={{ borderColor: 'purple.500', boxShadow: 'none' }}
-                  fontSize="sm"
-                />
-                <IconButton
-                  aria-label="Envoyer"
-                  icon={<ChatIcon />}
-                  size="sm"
-                  colorScheme="purple"
-                  variant="ghost"
-                  _hover={{ bg: 'whiteAlpha.100' }}
-                />
-              </HStack>
+              {currentPhase?.type !== 'NIGHT' && (
+                <HStack p={2} bg="rgba(0, 0, 0, 0.3)" spacing={2}>
+                  <Input
+                    placeholder="Message..."
+                    size="sm"
+                    bg="transparent"
+                    border="1px solid"
+                    borderColor="whiteAlpha.300"
+                    _hover={{ borderColor: 'purple.500' }}
+                    _focus={{ borderColor: 'purple.500', boxShadow: 'none' }}
+                    fontSize="sm"
+                  />
+                  <IconButton
+                    aria-label="Envoyer"
+                    icon={<ChatIcon />}
+                    size="sm"
+                    colorScheme="purple"
+                    variant="ghost"
+                    _hover={{ bg: 'whiteAlpha.100' }}
+                  />
+                </HStack>
+              )}
             </>
           )}
         </Box>

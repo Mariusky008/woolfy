@@ -7,7 +7,7 @@ export interface PhaseRequirement {
 }
 
 export interface PhaseAction {
-  type: 'vote' | 'chat' | 'use_power' | 'video_message' | 'wolf_vote' | 'private_chat' | 'defense_speech' | 'video_intro';
+  type: 'vote' | 'chat' | 'use_power' | 'video_message' | 'piege_vote' | 'private_chat' | 'defense_speech' | 'video_intro';
   target?: string;
   content?: any;
 }
@@ -49,7 +49,7 @@ export const gamePhases: Record<GamePhaseType, GamePhaseConfig> = {
   },
   NIGHT: {
     duration: 180, // 3 minutes
-    allowedActions: ['wolf_vote', 'use_power', 'private_chat'],
+    allowedActions: ['piege_vote', 'use_power', 'private_chat'],
     specialRules: ['roles_only']
   },
   JUDGMENT: {
