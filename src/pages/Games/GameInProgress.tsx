@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Box,
@@ -13,10 +13,12 @@ import { VotePhase } from '../../components/phases/VotePhase';
 import { EndPhase } from '../../components/phases/EndPhase';
 import { SpecialActions } from '../../components/roles/SpecialActions';
 import { useGameState } from '../../hooks/useGameState';
+import { MadameWoolfyModal } from '../../components/MadameWoolfyModal';
 
 export const GameInProgress: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const toast = useToast();
+  const [showWoolfyModal, setShowWoolfyModal] = useState(false);
 
   const {
     players,
@@ -34,6 +36,47 @@ export const GameInProgress: React.FC = () => {
     handleDefenseSpeechStart,
     handleDefenseSpeechEnd,
   } = useGameState(gameId || '');
+
+  // Gérer l'affichage de la modal Madame Woolfy
+  useEffect(() => {
+    if (isEliminated || (currentPhase.type === 'END' && winners.some(w => w.id === currentPlayer?.id))) {
+      setShowWoolfyModal(true);
+    }
+  }, [isEliminated, currentPhase.type, winners, currentPlayer?.id]);
+
+  const handleVideoSubmit = async (recipientId: string, videoBlob: Blob) => {
+    try {
+      const formData = new FormData();
+      formData.append('video', videoBlob);
+      formData.append('recipientId', recipientId);
+      formData.append('gameId', gameId || '');
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/woolfy-messages`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de l\'envoi du message');
+      }
+
+      toast({
+        title: 'Message envoyé',
+        description: 'Votre message a été transmis avec succès',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible d\'envoyer le message vidéo',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
 
   const renderPhaseActions = (phaseType: GamePhaseType) => {
     if (!currentPlayer) return null;
@@ -103,6 +146,17 @@ export const GameInProgress: React.FC = () => {
           </Box>
         </VStack>
       </Container>
+
+      {currentPlayer && (
+        <MadameWoolfyModal
+          isOpen={showWoolfyModal}
+          onClose={() => setShowWoolfyModal(false)}
+          player={currentPlayer}
+          players={players}
+          isWinner={currentPhase.type === 'END' && winners.some(w => w.id === currentPlayer.id)}
+          onVideoSubmit={handleVideoSubmit}
+        />
+      )}
     </Box>
   );
 }; 
