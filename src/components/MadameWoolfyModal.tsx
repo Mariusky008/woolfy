@@ -19,7 +19,9 @@ import {
 import { SmallCloseIcon } from '@chakra-ui/icons';
 import { FaVideo } from 'react-icons/fa';
 import { GiMagicSwirl } from 'react-icons/gi';
-import { Player, WoolfyQuestion, GamePhaseType } from '../types/game';
+import { Player } from '../types/messages';
+import { GamePhaseType } from '../types/phases';
+import { WoolfyQuestion } from '../types/game';
 
 interface MadameWoolfyModalProps {
   isOpen: boolean;
@@ -58,7 +60,7 @@ const generatePersonalizedQuestion = (selectedPlayerName: string): WoolfyQuestio
   return {
     id: Date.now().toString(),
     text: randomQuestion.text,
-    phase: 'VOTE',
+    phase: 'VOTE' as GamePhaseType,
     category: randomQuestion.category as 'comportement' | 'strategie' | 'observation' | 'deduction'
   };
 };

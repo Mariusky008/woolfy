@@ -67,10 +67,21 @@ import {
 } from '@chakra-ui/react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { GiMagicSwirl, GiNotebook, GiWolfHowl, GiTrophyCup, GiLaurelCrown, GiDeathSkull, GiMoonBats, GiSun, GiWoodenChair } from 'react-icons/gi'
-import { TimeIcon, ChatIcon, PhoneIcon, ViewIcon, CloseIcon, SmallCloseIcon, ViewOffIcon } from '@chakra-ui/icons'
-import { FaVideo, FaMicrophone, FaComments, FaUser } from 'react-icons/fa'
+import { TimeIcon, ChatIcon, PhoneIcon, ViewIcon, CloseIcon, SmallCloseIcon, ViewOffIcon, CheckIcon, WarningIcon } from '@chakra-ui/icons'
+import { FaVideo, FaMicrophone, FaComments, FaUser, FaCheck, FaExclamationTriangle } from 'react-icons/fa'
 import { useGamePhaseContext } from '../../contexts/GamePhaseContext'
-import { GamePhase, GamePhaseType, PHASE_NAMES, PHASE_DESCRIPTIONS } from '../../types/phases'
+import { 
+  GamePhaseType, 
+  PHASE_NAMES, 
+  PHASE_DESCRIPTIONS,
+  GamePhase,
+  PhaseAction,
+  PhaseRequirement,
+  gamePhases,
+  PhaseState,
+  PhaseTransition,
+  PHASE_TRANSITIONS
+} from '../../types/phases'
 import MessageRecorder from '../../components/MessageRecorder'
 import { VillageChat } from '../../components/VillageChat'
 import { 
@@ -83,20 +94,21 @@ import {
   ActiveCall,
   RecordedMessage,
   RecordedMessages,
-  Player
+  Player,
+  PlayerStats
 } from '../../types/messages'
-import {
-  TemporaryPower,
-  GamePhaseConfig,
-  PlayerStats,
-  gamePhases
-} from '../../types/game'
 import {
   Role,
   DuoMystere,
   DuoBonus
 } from '../../types/roles'
+import { TemporaryPower } from '../../types/game'
 import { MadameWoolfyModal } from '../../components/MadameWoolfyModal'
+import { 
+  WoolfyQuestion,
+  WoolfyInterview,
+  woolfyQuestions
+} from '../../types/game'
 
 // Importer MediaRecorder depuis le type global
 declare global {
@@ -152,86 +164,11 @@ interface PlayerRole {
   abilities: string[];
 }
 
-interface WoolfyQuestion {
-  id: string;
-  text: string;
-  phase: GamePhaseType;
-  category: 'comportement' | 'strategie' | 'observation' | 'deduction';
-}
-
-const woolfyQuestions: WoolfyQuestion[] = [
-  {
-    id: '1',
-    text: "Si vous deviez protéger un joueur cette nuit, lequel choisiriez-vous et pourquoi ?",
-    phase: 'NIGHT',
-    category: 'strategie'
-  },
-  {
-    id: '2',
-    text: "Quel joueur vous semble le plus suspect jusqu'à présent et quels sont vos arguments ?",
-    phase: 'DAY',
-    category: 'observation'
-  },
-  {
-    id: '3',
-    text: "Comment interprétez-vous le comportement silencieux de certains joueurs ?",
-    phase: 'JUDGMENT',
-    category: 'comportement'
-  },
-  {
-    id: '4',
-    text: "Quels indices vous ont permis de suspecter ou d'innocenter des joueurs ?",
-    phase: 'DAY',
-    category: 'deduction'
-  },
-  {
-    id: '5',
-    text: "Si vous étiez Woolfy, quelle serait votre stratégie pour ne pas vous faire repérer ?",
-    phase: 'DAY',
-    category: 'strategie'
-  },
-  {
-    id: '6',
-    text: "Quel joueur vous semble le plus digne de confiance et pourquoi ?",
-    phase: 'JUDGMENT',
-    category: 'observation'
-  },
-  {
-    id: '7',
-    text: "Comment avez-vous interprété les derniers votes de l'assemblée ?",
-    phase: 'VOTE',
-    category: 'deduction'
-  },
-  {
-    id: '8',
-    text: "Quelles alliances pensez-vous avoir identifiées parmi les joueurs ?",
-    phase: 'DAY',
-    category: 'observation'
-  },
-  {
-    id: '9',
-    text: "Comment comptez-vous utiliser les informations récoltées pendant la nuit ?",
-    phase: 'NIGHT',
-    category: 'strategie'
-  },
-  {
-    id: '10',
-    text: "Quel joueur a selon vous changé de comportement récemment ?",
-    phase: 'JUDGMENT',
-    category: 'comportement'
-  }
-];
-
-interface WoolfyInterview {
-  id: string;
+interface CurrentInterview {
+  id: string;  // ID requis au lieu d'optionnel
   playerId: string;
   questionId: string;
-  videoUrl: string;
-  timestamp: Date;
-  phase: GamePhaseType;
-  recipientId: string;
-  isResponse: boolean;
-  parentInterviewId?: string;
+  isRecording: boolean;
 }
 
 const roles: Record<string, PlayerRole> = {
@@ -544,6 +481,7 @@ interface BaseMessage {
   from: string;
   timestamp: Date;
   isRead: boolean;
+  questionId?: string; // Ajout du champ optionnel questionId
 }
 
 interface TextMessage extends BaseMessage {
@@ -560,14 +498,18 @@ type ReceivedMessage = TextMessage | MediaMessage;
 
 // Utiliser les constantes de phase importées
 const phaseDescriptions = {
-  SETUP: 'Les joueurs reçoivent leurs rôles et peuvent commencer à discuter. N\'oubliez pas d\'envoyer au moins une vidéo !',
+  SETUP: 'Les joueurs ont reçu leurs rôles et peuvent commencer à discuter. Une vidéo de présentation est optionnelle.',
   DAY: 'Débattez, bluffez et tentez de démasquer les traîtres. Une vidéo obligatoire par phase !',
   JUDGMENT: 'Le joueur le plus suspect doit se défendre. Votez pour décider de son sort.',
   NIGHT: 'Les Piégés choisissent leur victime. Woolfy et les rôles spéciaux agissent.',
   VOTE: 'Phase de vote en cours...'
 } as const;
 
-const GameTimer: React.FC<{ timeRemaining: number; phase: GamePhase }> = ({ timeRemaining, phase }) => {
+const GameTimer: React.FC<{ 
+  timeRemaining: number; 
+  phase: PhaseState;
+  requirements: PhaseRequirement[];
+}> = ({ timeRemaining, phase, requirements }) => {
   return (
     <Box
       position="fixed"
@@ -582,40 +524,62 @@ const GameTimer: React.FC<{ timeRemaining: number; phase: GamePhase }> = ({ time
       zIndex={1000}
     >
       <Container maxW="container.xl">
-        <HStack spacing={8} justify="space-between" align="center">
-          {/* Phase et Timer */}
-          <HStack spacing={6} flex={1}>
-            <HStack spacing={3}>
-              {phase.type === 'NIGHT' ? (
-                <Icon as={GiMoonBats} color="purple.400" boxSize="24px" />
-              ) : (
-                <Icon as={GiSun} color="yellow.400" boxSize="24px" />
-              )}
-              <Text fontSize="xl" color="white" fontWeight="bold">
-            {PHASE_NAMES[phase.type]}
-          </Text>
+        <VStack spacing={4}>
+          <HStack spacing={8} justify="space-between" align="center" w="full">
+            {/* Phase et Timer */}
+            <HStack spacing={6} flex={1}>
+              <HStack spacing={3}>
+                {phase.type === 'NIGHT' ? (
+                  <Icon as={GiMoonBats} color="purple.400" boxSize="24px" />
+                ) : (
+                  <Icon as={GiSun} color="yellow.400" boxSize="24px" />
+                )}
+                <Text fontSize="xl" color="white" fontWeight="bold">
+                  {PHASE_NAMES[phase.type as GamePhaseType]}
+                </Text>
+              </HStack>
+              <Text fontSize="2xl" color="white" fontWeight="bold">
+                {`${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`}
+              </Text>
             </HStack>
-            <Text fontSize="2xl" color="white" fontWeight="bold">
-              {`${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`}
-          </Text>
-      </HStack>
 
-          {/* Description de la phase */}
-          <Text color="gray.300" flex={2} textAlign="center">
-            {phaseDescriptions[phase.type]}
-          </Text>
+            {/* Description de la phase */}
+            <Text color="gray.300" flex={2} textAlign="center">
+              {PHASE_DESCRIPTIONS[phase.type as GamePhaseType]}
+            </Text>
 
-          {/* Barre de progression */}
-          <Box flex={1} maxW="200px">
-            <Progress
-              value={(timeRemaining / 300) * 100}
-              size="sm"
-              colorScheme="purple"
-              bg="whiteAlpha.200"
-              borderRadius="full"
-            />
-          </Box>
-        </HStack>
+            {/* Barre de progression */}
+            <Box flex={1} maxW="200px">
+              <Progress
+                value={(timeRemaining / gamePhases[phase.type as GamePhaseType].duration) * 100}
+                size="sm"
+                colorScheme="purple"
+                bg="whiteAlpha.200"
+                borderRadius="full"
+              />
+            </Box>
+          </HStack>
+
+          {/* Exigences de la phase */}
+          {requirements.length > 0 && (
+            <HStack spacing={4} w="full" justify="center">
+              {requirements.map((req, index) => (
+                <Tag
+                  key={index}
+                  size="lg"
+                  variant="subtle"
+                  colorScheme={req.completed ? "green" : "yellow"}
+                >
+                  <TagLeftIcon 
+                    as={req.completed ? FaCheck : FaExclamationTriangle} 
+                    boxSize="12px" 
+                  />
+                  <TagLabel fontSize="sm">{req.description}</TagLabel>
+                </Tag>
+              ))}
+            </HStack>
+          )}
+        </VStack>
       </Container>
     </Box>
   );
@@ -631,7 +595,6 @@ interface GamePhaseState {
 
 export const GameInProgress: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
-  // États pour la gestion de la taille et du mode plein écran
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [gameAreaSize, setGameAreaSize] = useState({
     width: 800,
@@ -640,12 +603,218 @@ export const GameInProgress: React.FC = () => {
   });
 
   // État pour la phase de jeu
-  const [currentPhase, setCurrentPhase] = useState<GamePhaseState>({
-    type: 'VOTE',
+  const [currentPhase, setCurrentPhase] = useState<PhaseState>({
+    type: 'SETUP',
     startTime: new Date(Date.now()),
-    endTime: new Date(Date.now() + 300000),
-    remainingTime: 300
+    endTime: new Date(Date.now() + gamePhases['SETUP'].duration * 1000),
+    remainingTime: gamePhases['SETUP'].duration,
+    requirements: [
+      {
+        type: 'video',
+        completed: true, // Marqué comme complété par défaut car optionnel
+        description: 'Vidéo de présentation (optionnelle)'
+      }
+    ],
+    completedActions: [],
+    canTransition: false
   });
+
+  // Nouvel état pour le joueur accusé
+  const [accusedPlayer, setAccusedPlayer] = useState<Player | null>(null);
+  
+  // État pour les actions de phase
+  const [phaseActions, setPhaseActions] = useState<PhaseAction[]>([]);
+
+  // Effet pour gérer le timer et les transitions de phase
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentPhase(prev => {
+        const newRemainingTime = Math.max(0, prev.remainingTime - 1);
+        
+        // Vérifier si la phase peut se terminer
+        const currentPhaseConfig = gamePhases[prev.type];
+        const canTransition = checkPhaseTransition(prev, newRemainingTime);
+        
+        if (canTransition) {
+          const nextPhase = getNextPhase(prev.type);
+          if (nextPhase) {
+            return initializePhase(nextPhase);
+          }
+        }
+        
+        return {
+          ...prev,
+          remainingTime: newRemainingTime,
+          canTransition
+        };
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Fonction pour vérifier si une phase peut se terminer
+  const checkPhaseTransition = (phase: PhaseState, remainingTime: number): boolean => {
+    const transition = PHASE_TRANSITIONS.find((t: PhaseTransition) => t.from === phase.type);
+    if (!transition) return false;
+
+    switch (transition.condition) {
+      case 'time':
+        return remainingTime === 0;
+      case 'vote_complete':
+        return Object.keys(votes).length === players.filter(p => p.isAlive).length;
+      case 'action_complete':
+        return phase.requirements.every(r => r.completed);
+      case 'manual':
+        return phase.canTransition;
+      default:
+        return false;
+    }
+  };
+
+  // Fonction pour obtenir la phase suivante
+  const getNextPhase = (currentType: GamePhaseType): GamePhaseType | null => {
+    const transition = PHASE_TRANSITIONS.find(t => t.from === currentType);
+    return transition ? transition.to : null;
+  };
+
+  // Fonction pour initialiser une nouvelle phase
+  const initializePhase = (type: GamePhaseType): PhaseState => {
+    const phaseConfig = gamePhases[type];
+    const requirements: PhaseRequirement[] = [];
+
+    // Logique spécifique pour la phase SETUP
+    if (type === 'SETUP') {
+      requirements.push({
+        type: 'video',
+        completed: true, // Marqué comme complété par défaut car optionnel
+        description: 'Vidéo de présentation (optionnelle)'
+      });
+    }
+
+    // Ajouter les exigences spécifiques à la phase
+    if (phaseConfig.specialRules?.includes('must_record_video') && type !== 'SETUP') {
+      requirements.push({
+        type: 'video',
+        completed: false,
+        description: 'Enregistrer une vidéo obligatoire'
+      });
+    }
+
+    if (type === 'VOTE' || type === 'JUDGMENT') {
+      requirements.push({
+        type: 'vote',
+        completed: false,
+        description: 'Voter pour un joueur'
+      });
+    }
+
+    // Logique spécifique pour la phase END
+    if (type === 'END') {
+      requirements.push({
+        type: 'video',
+        completed: false,
+        description: 'Enregistrer un message de fin de partie'
+      });
+    }
+
+    return {
+      type,
+      startTime: new Date(Date.now()),
+      endTime: new Date(Date.now() + phaseConfig.duration * 1000),
+      remainingTime: phaseConfig.duration,
+      requirements,
+      completedActions: [],
+      canTransition: false
+    };
+  };
+
+  // Fonction pour gérer les actions de phase
+  const handlePhaseAction = (action: PhaseAction) => {
+    const phaseConfig = gamePhases[currentPhase.type];
+    
+    if (!phaseConfig.allowedActions.includes(action.type)) {
+      toast({
+        title: "Action non autorisée",
+        description: "Cette action n'est pas permise pendant cette phase.",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
+    setPhaseActions(prev => [...prev, action]);
+    
+    // Mettre à jour les exigences de la phase
+    setCurrentPhase(prev => {
+      const updatedRequirements = prev.requirements.map(req => {
+        if (req.type === action.type) {
+          return { ...req, completed: true };
+        }
+        return req;
+      });
+
+      return {
+        ...prev,
+        requirements: updatedRequirements,
+        completedActions: [...prev.completedActions, action],
+        canTransition: updatedRequirements.every(r => r.completed)
+      };
+    });
+  };
+
+  // Fonction pour gérer les votes
+  const handleVote = (targetId: string) => {
+    if (currentPhase.type !== 'VOTE' && currentPhase.type !== 'JUDGMENT') {
+      toast({
+        title: "Vote non autorisé",
+        description: "Les votes ne sont pas autorisés pendant cette phase.",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
+    const currentPlayer = players.find(p => p.isCurrent);
+    if (currentPlayer) {
+      handlePhaseAction({
+        type: 'vote',
+        target: targetId,
+        content: { fromId: currentPlayer.id, toId: targetId }
+      });
+
+      // Animation et mise à jour des votes comme avant
+      setVoteAnimation({
+        fromId: currentPlayer.id,
+        toId: targetId,
+        active: true
+      });
+
+      setTimeout(() => {
+        setVotes(prev => ({
+          ...prev,
+          [currentPlayer.id]: targetId
+        }));
+
+        setVoteResults(prev => ({
+          ...prev,
+          [targetId]: (prev[targetId] || 0) + 1
+        }));
+
+        setVoteAnimation(null);
+        setSelectedVoteTarget(null);
+
+        // Vérifier si tous les joueurs ont voté
+        const alivePlayers = players.filter(p => p.isAlive).length;
+        const totalVotes = Object.keys(votes).length + 1;
+        if (totalVotes >= alivePlayers) {
+          setShowVoteSummary(true);
+        }
+      }, 1000);
+    }
+  };
 
   const [players] = useState<Player[]>(mockPlayers);
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -731,45 +900,65 @@ export const GameInProgress: React.FC = () => {
   };
 
   // Modifier la gestion des communications
-  const handleCommunication = (type: 'audio' | 'video' | 'text', playerId: string) => {
-    // Nettoyer les états précédents
-    if (mediaStream) {
-      mediaStream.getTracks().forEach(track => track.stop());
-    }
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-      mediaRecorder.stop();
-    }
+  const handleCommunication = async (type: 'audio' | 'video' | 'text', playerId: string) => {
+    try {
+      // Nettoyer les états précédents
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+      }
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
 
-    // Réinitialiser tous les états
-    setMediaStream(null);
-    setMediaRecorder(null);
-    setIsRecording(false);
-    setRecordedChunks([]);
-    setMessageContent('');
-    
-    // Définir la nouvelle communication
-    setSelectedCommunication({ type, playerId });
-    
-    // Ouvrir la modal
-    onOpen();
-
-    // Ajouter la communication active
-    const currentPlayer = players.find(p => p.isCurrent);
-    if (currentPlayer) {
-      // Nettoyer les anciennes communications du joueur actuel
-      setActiveCommunications(prev => 
-        prev.filter(comm => comm.fromId !== currentPlayer.id)
-      );
+      // Réinitialiser tous les états
+      setMediaStream(null);
+      setMediaRecorder(null);
+      setIsRecording(false);
+      setRecordedChunks([]);
+      setMessageContent('');
       
-      // Ajouter la nouvelle communication
-      setActiveCommunications(prev => [
-        ...prev,
-        {
-          fromId: currentPlayer.id,
-          toId: playerId,
-          type
-        }
-      ]);
+      // Définir la nouvelle communication
+      setSelectedCommunication({ type, playerId });
+      
+      // Si c'est une communication vidéo, initialiser la caméra immédiatement
+      if (type === 'video') {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        setMediaStream(stream);
+      }
+      
+      // Ouvrir la modal
+      onOpen();
+
+      // Ajouter la communication active
+      const currentPlayer = players.find(p => p.isCurrent);
+      if (currentPlayer) {
+        // Nettoyer les anciennes communications du joueur actuel
+        setActiveCommunications(prev => 
+          prev.filter(comm => comm.fromId !== currentPlayer.id)
+        );
+        
+        // Ajouter la nouvelle communication
+        setActiveCommunications(prev => [
+          ...prev,
+          {
+            fromId: currentPlayer.id,
+            toId: playerId,
+            type
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'initialisation de la communication:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'accéder à la caméra ou au microphone. Vérifiez vos permissions.",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
     }
   };
 
@@ -789,6 +978,7 @@ export const GameInProgress: React.FC = () => {
     setIsRecording(false);
     setRecordedChunks([]);
     setMessageContent('');
+    setSelectedCommunication(null);
     
     // Nettoyer les communications actives
     const currentPlayer = players.find(p => p.isCurrent);
@@ -826,43 +1016,47 @@ export const GameInProgress: React.FC = () => {
       } else {
         if (!isRecording) {
           // Démarrer l'enregistrement
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: selectedCommunication.type === 'video'
-          });
+          if (!mediaStream) {
+            const newStream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+              video: selectedCommunication.type === 'video'
+            });
+            setMediaStream(newStream);
+          }
           
-          setMediaStream(stream);
-          const recorder = new MediaRecorder(stream);
-          
-          recorder.ondataavailable = (e) => {
-            if (e.data.size > 0) {
-              setRecordedChunks(prev => [...prev, e.data]);
-            }
-          };
-          
-          recorder.onstop = () => {
-            if (recordedChunks.length > 0) {
-              const blob = new Blob(recordedChunks, {
-                type: selectedCommunication.type === 'audio' ? 'audio/webm' : 'video/webm'
-              });
-              
-              const newMessage: MediaMessage = {
-                id: Date.now().toString(),
-                type: selectedCommunication.type === 'audio' ? 'audio' : 'video',
-                content: blob,
-                from: currentPlayer.username,
-                timestamp: new Date(),
-                isRead: false
-              };
-              
-              setReceivedMessages(prev => [...prev, newMessage]);
-            }
-            handleCloseModal();
-          };
-          
-          setMediaRecorder(recorder);
-          recorder.start();
-          setIsRecording(true);
+          if (mediaStream) {
+            const newRecorder = new MediaRecorder(mediaStream);
+            
+            newRecorder.ondataavailable = (e) => {
+              if (e.data.size > 0) {
+                setRecordedChunks(prev => [...prev, e.data]);
+              }
+            };
+            
+            newRecorder.onstop = () => {
+              if (recordedChunks.length > 0) {
+                const blob = new Blob(recordedChunks, {
+                  type: selectedCommunication.type === 'audio' ? 'audio/webm' : 'video/webm'
+                });
+                
+                const newMessage: MediaMessage = {
+                  id: Date.now().toString(),
+                  type: selectedCommunication.type === 'audio' ? 'audio' : 'video',
+                  content: blob,
+                  from: currentPlayer.username,
+                  timestamp: new Date(),
+                  isRead: false
+                };
+                
+                setReceivedMessages(prev => [...prev, newMessage]);
+              }
+              handleCloseModal();
+            };
+            
+            setMediaRecorder(newRecorder);
+            newRecorder.start();
+            setIsRecording(true);
+          }
         } else {
           // Arrêter l'enregistrement
           if (mediaRecorder && mediaRecorder.state === 'recording') {
@@ -898,53 +1092,6 @@ export const GameInProgress: React.FC = () => {
     [key: string]: number;
   }>({});
   const [showVoteSummary, setShowVoteSummary] = useState(false);
-
-  // Fonction améliorée pour gérer les votes
-  const handleVote = (targetId: string) => {
-    const currentPlayer = players.find(p => p.isCurrent);
-    if (currentPlayer) {
-      // Animer le vote
-      setVoteAnimation({
-        fromId: currentPlayer.id,
-        toId: targetId,
-        active: true
-      });
-
-      // Mettre à jour les votes après l'animation
-      setTimeout(() => {
-        setVotes(prev => ({
-          ...prev,
-          [currentPlayer.id]: targetId
-        }));
-
-        // Mettre à jour les résultats
-        setVoteResults(prev => ({
-          ...prev,
-          [targetId]: (prev[targetId] || 0) + 1
-        }));
-
-        setVoteAnimation(null);
-        setSelectedVoteTarget(null);
-
-        // Notification de vote
-        toast({
-          title: "Vote enregistré",
-          description: `Vous avez voté pour ${players.find(p => p.id === targetId)?.username}`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-          position: "top-right"
-        });
-
-        // Vérifier si tous les joueurs ont voté
-        const alivePlayers = players.filter(p => p.isAlive).length;
-        const totalVotes = Object.keys(votes).length + 1; // +1 pour le vote actuel
-        if (totalVotes >= alivePlayers) {
-          setShowVoteSummary(true);
-        }
-      }, 1000);
-    }
-  };
 
   // Composant pour l'animation du vote
   const VoteAnimation = () => {
@@ -1101,10 +1248,10 @@ export const GameInProgress: React.FC = () => {
   const renderPhaseActions = (phaseType: string) => {
     switch (phaseType) {
       case 'SETUP':
-    return (
+        return (
           <>
-            <ListItem>• Présentez-vous aux autres joueurs (vidéo obligatoire)</ListItem>
-            <ListItem>• Découvrez votre rôle et vos capacités</ListItem>
+            <ListItem>• Les rôles ont déjà été distribués</ListItem>
+            <ListItem>• Vous pouvez enregistrer une vidéo de présentation (optionnel)</ListItem>
             <ListItem>• Commencez à observer les autres joueurs</ListItem>
           </>
         );
@@ -1164,11 +1311,7 @@ export const GameInProgress: React.FC = () => {
   };
 
   const [woolfyInterviews, setWoolfyInterviews] = useState<WoolfyInterview[]>([]);
-  const [currentInterview, setCurrentInterview] = useState<{
-    playerId: string;
-    questionId: string;
-    isRecording: boolean;
-  } | null>(null);
+  const [currentInterview, setCurrentInterview] = useState<CurrentInterview | null>(null);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [canStopRecording, setCanStopRecording] = useState(false);
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
@@ -1182,73 +1325,9 @@ export const GameInProgress: React.FC = () => {
       return;
     }
 
-    // Vérifier le nombre d'interviews déjà réalisées dans cette phase
-    const currentPhaseInterviews = woolfyInterviews.filter(i => i.phase === currentPhase.type);
-    if (currentPhaseInterviews.length >= 6) {
-      console.log('Nombre maximum d\'interviews atteint pour cette phase');
-      return;
-    }
-
-    // Calculer le nombre de joueurs à interviewer
-    const alivePlayers = players.filter(p => p.isAlive);
-    const remainingInterviews = 6 - currentPhaseInterviews.length;
-    const minPlayers = Math.min(4, alivePlayers.length); // Au moins 4 joueurs différents ou tous si moins de 4 vivants
-    const maxPlayers = Math.min(remainingInterviews, alivePlayers.length); // Ne pas dépasser le nombre d'interviews restantes
-
-    // Sélectionner les joueurs qui n'ont pas encore été interviewés dans cette phase
-    const availablePlayers = alivePlayers.filter(p => 
-      !woolfyInterviews.some(i => 
-        i.playerId === p.id && 
-        i.phase === currentPhase.type
-      )
-    );
-
-    if (availablePlayers.length === 0) {
-      console.log('Plus de joueurs disponibles pour les interviews');
-      return;
-    }
-
-    // Mélanger les joueurs disponibles et prendre le nombre requis
-    const shuffledPlayers = [...availablePlayers].sort(() => Math.random() - 0.5);
-    const numPlayers = Math.max(minPlayers, Math.min(maxPlayers, shuffledPlayers.length));
-    const selectedPlayers = shuffledPlayers.slice(0, numPlayers);
-
-    // Variable pour suivre l'interview en cours
-    let currentInterviewIndex = 0;
-
-    const processNextInterview = async () => {
-      if (currentInterviewIndex >= selectedPlayers.length) {
-        return; // Toutes les interviews sont terminées
-      }
-
-      const player = selectedPlayers[currentInterviewIndex];
-      
-      // Vérifier si le joueur actuel est celui qui doit être interviewé
-      const currentPlayer = players.find(p => p.isCurrent);
-      if (!currentPlayer || currentPlayer.id !== player.id) {
-        // Si ce n'est pas le bon joueur, passer à l'interview suivante
-        currentInterviewIndex++;
-        setTimeout(() => {
-          processNextInterview();
-        }, 5000);
-        return;
-      }
-
-      // Sélectionner une question appropriée pour la phase actuelle
-      const phaseQuestions = woolfyQuestions.filter(q => q.phase === currentPhase.type);
-      if (phaseQuestions.length === 0) return;
-
-      const randomQuestion = phaseQuestions[Math.floor(Math.random() * phaseQuestions.length)];
-
-      // Préparer l'interview
-      setCurrentInterview({
-        playerId: player.id,
-        questionId: randomQuestion.id,
-        isRecording: false
-      });
-
+    // Cas spécial pour la phase SETUP - vidéo de présentation
+    if (currentPhase.type === 'SETUP') {
       try {
-        // Configurer la capture vidéo
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true
@@ -1270,66 +1349,69 @@ export const GameInProgress: React.FC = () => {
           const blob = new Blob(chunks, { type: 'video/webm' });
           const url = URL.createObjectURL(blob);
 
-          // Sauvegarder l'interview
-          const newInterview: WoolfyInterview = {
-            id: Date.now().toString(),
-            playerId: player.id,
-            questionId: randomQuestion.id,
-            videoUrl: url,
-            timestamp: new Date(),
-            phase: currentPhase.type,
-            recipientId: '',
-            isResponse: false,
-            parentInterviewId: currentInterview?.id
-          };
+          const currentPlayer = players.find(p => p.isCurrent);
+          if (currentPlayer) {
+            const presentationVideo: WoolfyInterview = {
+              id: Date.now().toString(),
+              playerId: currentPlayer.id,
+              questionId: 'presentation',
+              videoUrl: url,
+              timestamp: new Date(),
+              phase: 'SETUP',
+              recipientId: '',
+              isResponse: false
+            };
 
-          setWoolfyInterviews(prev => [...prev, newInterview]);
+            setWoolfyInterviews(prev => [...prev, presentationVideo]);
 
-          // Notifier tous les joueurs
-          toast({
-            title: "Nouvelle Interview !",
-            description: `${player.username} vient de répondre à une question de Madame Woolfy.`,
-            status: "info",
-            duration: 5000,
-            isClosable: true
-          });
+            // Ajouter une notification dans les messages reçus
+            const notificationMessage: ReceivedMessage = {
+              id: Date.now().toString(),
+              type: 'video',
+              content: blob,
+              from: currentPlayer.username,
+              timestamp: new Date(),
+              isRead: false,
+              questionId: 'presentation' // Ajout du questionId pour identifier la vidéo de présentation
+            };
 
-          // Nettoyer
+            setReceivedMessages(prev => [...prev, notificationMessage]);
+
+            toast({
+              title: "Vidéo de présentation enregistrée !",
+              description: "Votre vidéo de présentation a été enregistrée avec succès.",
+              status: "success",
+              duration: 5000,
+              isClosable: true
+            });
+          }
+
           stream.getTracks().forEach(track => track.stop());
           setCurrentInterview(null);
           setShowInterviewModal(false);
-
-          // Passer à l'interview suivante après un délai
-          currentInterviewIndex++;
-          setTimeout(() => {
-            processNextInterview();
-          }, 5000);
         };
 
         interviewRecorderRef.current = recorder;
+        setCurrentInterview({
+          id: Date.now().toString(),
+          playerId: players.find(p => p.isCurrent)?.id || '',
+          questionId: 'presentation',
+          isRecording: false
+        });
         setShowInterviewModal(true);
 
       } catch (error) {
-        console.error('Erreur lors de la préparation de l\'interview:', error);
+        console.error('Erreur lors de la préparation de la vidéo:', error);
         toast({
           title: "Erreur",
-          description: "Impossible de démarrer l'interview. Veuillez réessayer.",
+          description: "Impossible d'accéder à la caméra. Vérifiez vos permissions.",
           status: "error",
           duration: 3000,
           isClosable: true
         });
-        // En cas d'erreur, passer à l'interview suivante
-        currentInterviewIndex++;
-        setTimeout(() => {
-          processNextInterview();
-        }, 5000);
       }
-    };
-
-    // Démarrer la première interview
-    processNextInterview();
-
-  }, [currentPhase.type, players, woolfyInterviews, toast, showInterviewModal, currentInterview]);
+    }
+  }, [currentPhase.type, players, woolfyInterviews, toast, showInterviewModal, currentInterview, interviewVideoRef, setCurrentInterview, setShowInterviewModal, setWoolfyInterviews]);
 
   // Démarrer les interviews à des moments spécifiques
   useEffect(() => {
@@ -1619,13 +1701,111 @@ export const GameInProgress: React.FC = () => {
     };
   }, [handlePlayerElimination, handleGameEnd]);
 
+  const handlePresentationVideo = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+
+      setCurrentInterview({
+        id: Date.now().toString(),
+        playerId: players.find(p => p.isCurrent)?.id || '',
+        questionId: 'presentation',
+        isRecording: false
+      });
+
+      if (interviewVideoRef.current) {
+        interviewVideoRef.current.srcObject = stream;
+        await interviewVideoRef.current.play();
+      }
+
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+
+        const currentPlayer = players.find(p => p.isCurrent);
+        if (currentPlayer) {
+          const presentationVideo: WoolfyInterview = {
+            id: Date.now().toString(),
+            playerId: currentPlayer.id,
+            questionId: 'presentation',
+            videoUrl: url,
+            timestamp: new Date(),
+            phase: 'SETUP',
+            recipientId: '',
+            isResponse: false
+          };
+
+          setWoolfyInterviews(prev => [...prev, presentationVideo]);
+
+          // Créer une notification pour tous les joueurs
+          const notificationMessage: ReceivedMessage = {
+            id: Date.now().toString(),
+            type: 'video',
+            content: blob,
+            from: currentPlayer.username,
+            timestamp: new Date(),
+            isRead: false,
+            questionId: 'presentation' // Ajout du questionId pour identifier la vidéo de présentation
+          };
+
+          // Ajouter la notification dans les messages reçus pour tous les joueurs
+          setReceivedMessages(prev => [
+            ...prev,
+            {
+              ...notificationMessage,
+              content: blob
+            }
+          ]);
+
+          toast({
+            title: "Vidéo de présentation enregistrée !",
+            description: "Votre vidéo a été partagée avec tous les joueurs.",
+            status: "success",
+            duration: 5000,
+            isClosable: true
+          });
+        }
+
+        stream.getTracks().forEach(track => track.stop());
+        setCurrentInterview(null);
+        setShowInterviewModal(false);
+      };
+
+      interviewRecorderRef.current = recorder;
+      setShowInterviewModal(true);
+
+    } catch (error) {
+      console.error('Erreur lors de l\'activation de la caméra:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'accéder à la caméra. Vérifiez vos permissions.",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  };
+
   return (
     <Box position="relative" minH="100vh" bg={bgColor}>
       {/* Animation de transition de phase */}
       <PhaseTransition />
 
-      {/* Timer en haut */}
-      <GameTimer timeRemaining={currentPhase.remainingTime} phase={currentPhase as GamePhase} />
+      {/* Timer en haut avec phase actuelle */}
+      <GameTimer 
+        timeRemaining={currentPhase.remainingTime} 
+        phase={currentPhase}
+        requirements={currentPhase.requirements}
+      />
 
       {/* Contenu principal */}
       <Container maxW="container.xl" pt={20} pb={4}>
@@ -1656,7 +1836,19 @@ export const GameInProgress: React.FC = () => {
                       <UnorderedList spacing={2} styleType="none">
                         {renderPhaseActions(currentPhase.type)}
                       </UnorderedList>
-                </Box>
+                      {currentPhase.type === 'SETUP' && (
+                        <Button
+                          leftIcon={<FaVideo />}
+                          colorScheme="purple"
+                          variant="outline"
+                          mt={4}
+                          onClick={handlePresentationVideo}
+                          _hover={{ bg: 'whiteAlpha.100' }}
+                        >
+                          Enregistrer une vidéo de présentation (optionnel)
+                        </Button>
+                      )}
+                    </Box>
                   </VStack>
                 </Box>
 
@@ -2046,33 +2238,26 @@ export const GameInProgress: React.FC = () => {
                           {message.type === 'text' ? (
                             <Text color="gray.300">{message.content as string}</Text>
                           ) : (
-                            <HStack spacing={2}>
-          <Button
-                                leftIcon={message.type === 'audio' ? <FaMicrophone /> : <FaVideo />}
-                                onClick={() => handlePlayMessage(message as MediaMessage)}
-                                colorScheme="purple"
-                                size="sm"
-                              >
-                                {message.type === 'audio' ? 'Écouter' : 'Voir'}
-          </Button>
-          <Button
-                                leftIcon={<FaComments />}
-            onClick={() => {
-                                  setSelectedCommunication({
-                                    type: message.type,
-                                    playerId: players.find(p => p.username === message.from)?.id || ''
-                                  });
-                                  onOpen();
-                                }}
-                                colorScheme="purple"
-                                size="sm"
-                                variant="outline"
-                              >
-                                Répondre
-                              </Button>
-                            </HStack>
-          )}
-          </VStack>
+                            <VStack spacing={2} align="stretch" width="100%">
+                              {message.type === 'video' && message.from && (
+                                <Text color="gray.300" fontSize="sm">
+                                  {message.from} a partagé une {message.questionId === 'presentation' ? 'vidéo de présentation' : 'vidéo'}
+                                </Text>
+                              )}
+                              <HStack spacing={2}>
+                                <Button
+                                  leftIcon={message.type === 'audio' ? <FaMicrophone /> : <FaVideo />}
+                                  onClick={() => handlePlayMessage(message as MediaMessage)}
+                                  colorScheme="purple"
+                                  size="sm"
+                                  width="100%"
+                                >
+                                  {message.type === 'audio' ? 'Écouter' : 'Voir la vidéo'}
+                                </Button>
+                              </HStack>
+                            </VStack>
+                          )}
+                          </VStack>
                       </Box>
       ))}
                   </VStack>
@@ -2304,7 +2489,7 @@ export const GameInProgress: React.FC = () => {
 
       {/* Modal d'interview de Madame Woolfy */}
       <Modal 
-        isOpen={showInterviewModal} 
+        isOpen={showInterviewModal && currentInterview?.questionId !== 'presentation'} 
         onClose={() => {
           // Empêcher la fermeture si l'interview n'est pas terminée
           if (!currentInterview?.isRecording) {
@@ -2531,6 +2716,135 @@ export const GameInProgress: React.FC = () => {
           onVideoSubmit={handleVideoSubmit}
         />
       )}
+
+      {/* Modal de présentation vidéo */}
+      <Modal 
+        isOpen={showInterviewModal && currentInterview?.questionId === 'presentation'} 
+        onClose={() => {
+          if (interviewRecorderRef.current) {
+            interviewRecorderRef.current.stop();
+          }
+          setShowInterviewModal(false);
+        }}
+        size="xl"
+        isCentered
+      >
+        <ModalOverlay backdropFilter="blur(10px)" />
+        <ModalContent
+          bg="rgba(26, 32, 44, 0.95)"
+          borderWidth={1}
+          borderColor="purple.500"
+          boxShadow="0 0 30px rgba(159, 122, 234, 0.4)"
+          color="white"
+        >
+          <ModalHeader 
+            bg="purple.600" 
+            color="white"
+            py={4}
+            textAlign="center"
+            fontSize="2xl"
+            fontWeight="bold"
+            borderBottomWidth="4px"
+            borderBottomColor="purple.700"
+          >
+            Vidéo de Présentation
+            <Text fontSize="sm" color="gray.200" mt={2}>
+              Présentez-vous aux autres joueurs (optionnel)
+            </Text>
+          </ModalHeader>
+          <ModalBody p={0}>
+            <VStack spacing={0}>
+              <Box 
+                w="full"
+                bg="rgba(26, 32, 44, 0.95)"
+                p={6}
+              >
+                <VStack spacing={4}>
+                  <Box>
+                    <Text fontSize="lg" color="gray.300" mb={4} textAlign="center">
+                      C'est le moment de vous présenter aux autres joueurs ! 
+                      Partagez ce que vous voulez : votre stratégie, vos attentes pour la partie, ou simplement brisez la glace avec un message sympathique.
+                    </Text>
+                  </Box>
+
+                  <Box
+                    w="full"
+                    maxW="600px"
+                    borderRadius="xl"
+                    borderWidth="2px"
+                    borderColor="cyan.500"
+                    overflow="hidden"
+                    position="relative"
+                  >
+                    <AspectRatio ratio={16/9}>
+                      <video
+                        ref={interviewVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        style={{ 
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          transform: 'scaleX(-1)',
+                          backgroundColor: 'rgba(26, 32, 44, 0.8)'
+                        }}
+                      />
+                    </AspectRatio>
+                    {currentInterview?.isRecording && (
+                      <Box
+                        position="absolute"
+                        top={2}
+                        right={2}
+                        bg="red.500"
+                        borderRadius="full"
+                        w={3}
+                        h={3}
+                        animation="pulse 1.5s infinite"
+                        sx={{
+                          '@keyframes pulse': {
+                            '0%': { opacity: 1, transform: 'scale(1)' },
+                            '50%': { opacity: 0.5, transform: 'scale(1.2)' },
+                            '100%': { opacity: 1, transform: 'scale(1)' }
+                          }
+                        }}
+                      />
+                    )}
+                  </Box>
+
+                  <Button
+                    colorScheme={currentInterview?.isRecording ? "red" : "green"}
+                    size="lg"
+                    leftIcon={currentInterview?.isRecording ? <ViewOffIcon /> : <ViewIcon />}
+                    onClick={() => {
+                      if (currentInterview && !currentInterview.isRecording) {
+                        if (interviewRecorderRef.current) {
+                          interviewRecorderRef.current.start();
+                          setCurrentInterview({
+                            ...currentInterview,
+                            isRecording: true
+                          });
+                          toast({
+                            title: "Enregistrement démarré",
+                            description: "Vous pouvez maintenant vous présenter aux autres joueurs.",
+                            status: "info",
+                            duration: 5000,
+                            isClosable: true
+                          });
+                        }
+                      } else if (currentInterview?.isRecording && interviewRecorderRef.current) {
+                        interviewRecorderRef.current.stop();
+                      }
+                    }}
+                  >
+                    {currentInterview?.isRecording ? "Terminer l'enregistrement" : "Commencer l'enregistrement"}
+                  </Button>
+                </VStack>
+              </Box>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
     );
   };

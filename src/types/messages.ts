@@ -1,58 +1,66 @@
-export interface Player {
-  id: string;
-  username: string;
-  avatar: string;
-  isAlive: boolean;
-  isCurrentTurn: boolean;
-  isCurrent: boolean;
-  description: string;
-  stats: {
-    gamesPlayed: number;
-    gamesWon: number;
-    totalKills: number;
-    favoriteRole: string;
-    winRate: string;
-  };
-  position?: number;
+export interface PlayerStats {
+  gamesPlayed: number;
+  gamesWon: number;
+  totalKills: number;
+  favoriteRole: string;
+  winRate: string;
 }
 
-export type MessageType = 'text' | 'audio' | 'video';
-export type CallType = 'audio' | 'video';
-export type CallState = 'ringing' | 'connected' | 'ended';
+export interface Player {
+  id: string;
+  name: string;
+  username: string;
+  avatar?: string;
+  role?: string;
+  isAlive: boolean;
+  score: number;
+  isCurrent?: boolean;
+  isCurrentTurn?: boolean;
+  description?: string;
+  stats?: PlayerStats;
+  position?: number;
+}
 
 export interface GameMessage {
   id: string;
   content: string;
   timestamp: Date;
-  sender: Player;
-  type: MessageType;
+  type: 'system' | 'user' | 'role';
+  from?: string;
+  to?: string;
 }
 
 export interface UserMessage extends GameMessage {
-  isPrivate?: boolean;
-  recipient?: Player;
+  type: 'user';
+  from: string;
+  to?: string;
 }
 
 export interface SystemMessage extends GameMessage {
-  category: 'info' | 'warning' | 'error' | 'success';
+  type: 'system';
 }
 
+export type MessageType = 'text' | 'audio' | 'video';
+
+export type CallType = 'audio' | 'video';
+
+export type CallState = 'ringing' | 'connected' | 'ended';
+
 export interface ActiveCall {
-  id: string;
   type: CallType;
+  from: string;
+  to: string;
   state: CallState;
-  participants: Player[];
-  startTime: Date;
+  startTime?: Date;
+  endTime?: Date;
 }
 
 export interface RecordedMessage {
   id: string;
-  audioUrl: string;
-  duration: number;
+  type: MessageType;
+  content: string | Blob;
+  from: string;
   timestamp: Date;
-  sender: Player;
 }
 
-export interface RecordedMessages {
-  [key: string]: RecordedMessage[];
-} 
+export type RecordedMessages = Record<string, RecordedMessage[]>; 
