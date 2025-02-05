@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import AuthService from '../services/AuthService';
 
 interface User {
   _id: string
@@ -44,24 +45,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   
   checkAuth: async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/auth/check', {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      set({ isAuthenticated: data.isAuthenticated, isLoading: false });
+      const { isAuthenticated } = await AuthService.checkAuth();
+      set({ isAuthenticated });
       
-      if (data.isAuthenticated) {
-        const userResponse = await fetch('http://localhost:3000/api/auth/me', {
-          credentials: 'include'
-        });
-        const userData = await userResponse.json();
-        if (userData.success) {
-          set({ user: userData.user });
-        }
+      if (isAuthenticated) {
+        const user = await AuthService.getCurrentUser();
+        set({ user });
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
-      set({ isAuthenticated: false, isLoading: false });
+      set({ isAuthenticated: false });
+    } finally {
+      set({ isLoading: false });
     }
   }
-})) 
+})); 

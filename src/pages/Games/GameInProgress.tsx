@@ -68,12 +68,12 @@ export const GameInProgress: React.FC = () => {
         isClosable: true,
       });
     } catch (error) {
-      toast({
+        toast({
         title: 'Erreur',
         description: 'Impossible d\'envoyer le message vidéo',
         status: 'error',
         duration: 5000,
-        isClosable: true,
+          isClosable: true,
       });
     }
   };
@@ -124,16 +124,16 @@ export const GameInProgress: React.FC = () => {
       <Container maxW="container.xl" centerContent>
         <VStack spacing={4} mt={8}>
           <Text>Chargement de la partie...</Text>
-        </VStack>
+            </VStack>
       </Container>
     );
   }
 
   return (
-    <Box>
+                <Box>
       <Container maxW="container.xl">
         <VStack spacing={4}>
-          {renderPhaseActions(currentPhase.type)}
+                        {renderPhaseActions(currentPhase.type)}
           
           <Box mt={4}>
             <SpecialActions
@@ -143,8 +143,8 @@ export const GameInProgress: React.FC = () => {
               isEliminated={isEliminated}
               activeConversations={activeConversations}
             />
-          </Box>
-        </VStack>
+                            </Box>
+            </VStack>
       </Container>
 
       {currentPlayer && (
@@ -158,5 +158,5 @@ export const GameInProgress: React.FC = () => {
         />
       )}
     </Box>
-  );
-}; 
+    );
+  };

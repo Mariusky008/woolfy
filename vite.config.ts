@@ -21,15 +21,48 @@ export default defineConfig({
       usePolling: true
     },
     proxy: {
-      '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:3000',
-        changeOrigin: true,
-        secure: false
-      },
       '/socket.io': {
-        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        target: process.env.VITE_API_URL || 'http://localhost:3001',
+        ws: true,
         changeOrigin: true,
-        ws: true
+        secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('WebSocket proxy error:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Proxying request:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received response:', proxyRes.statusCode, req.url);
+          });
+          proxy.on('upgrade', (_req, socket, head) => {
+            console.log('WebSocket connection upgraded');
+            socket.on('error', (err: Error) => {
+              console.log('WebSocket socket error:', err);
+            });
+          });
+        }
+      },
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('API proxy error:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Proxying API request:', req.method, req.url);
+            // Add CORS headers
+            proxyReq.setHeader('Access-Control-Allow-Origin', '*');
+            proxyReq.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
+            proxyReq.setHeader('Access-Control-Allow-Credentials', 'true');
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received API response:', proxyRes.statusCode, req.url);
+          });
+        }
       }
     }
   },

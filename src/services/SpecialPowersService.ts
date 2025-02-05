@@ -15,14 +15,141 @@ class SpecialPowersService {
   private protectionHistory: ProtectionAction[] = [];
   private spyHistory: SpyAction[] = [];
   private manipulationHistory: ManipulationAction[] = [];
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 5;
 
   constructor() {
     this.connect();
   }
 
   private connect() {
-    this.socket = io(import.meta.env.VITE_API_URL, {
-      path: '/special-powers'
+    // Use relative path for WebSocket connection to go through Vite proxy
+    this.socket = io('/', {
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      reconnectionAttempts: this.maxReconnectAttempts,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      autoConnect: true,
+      forceNew: true,
+      timeout: 10000
+    });
+
+    this.socket.on('connect_error', (error: Error) => {
+      console.error('Socket connection error:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        transport: this.socket?.io?.engine?.transport?.name,
+        attempt: ++this.reconnectAttempts
+      });
+
+      // Try to reconnect with polling if WebSocket fails
+      if (this.socket?.io?.engine?.transport?.name === 'websocket' && this.reconnectAttempts < this.maxReconnectAttempts) {
+        console.log('Retrying with polling transport...');
+        this.socket.io.opts.transports = ['polling', 'websocket'];
+      }
+    });
+
+    this.socket.on('error', (error: Error) => {
+      console.error('Socket error:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        transport: this.socket?.io?.engine?.transport?.name
+      });
+    });
+
+    this.socket.on('connect', () => {
+      console.log('Connected to special powers service:', {
+        socketId: this.socket?.id,
+        transport: this.socket?.io?.engine?.transport?.name,
+        connected: this.socket?.connected,
+        attempts: this.reconnectAttempts
+      });
+      
+      // Reset reconnect attempts on successful connection
+      this.reconnectAttempts = 0;
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      console.log('Disconnected from special powers service:', {
+        reason,
+        socketId: this.socket?.id,
+        transport: this.socket?.io?.engine?.transport?.name,
+        attempts: this.reconnectAttempts
+      });
+      
+      if (reason === 'io server disconnect') {
+        // Server initiated disconnect, try to reconnect
+        this.socket?.connect();
+      }
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('Reconnected to special powers service:', {
+        attemptNumber,
+        socketId: this.socket?.id,
+        transport: this.socket?.io?.engine?.transport?.name
+      });
+    });
+
+    this.socket.on('reconnect_error', (error) => {
+      console.error('Socket reconnection error:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        transport: this.socket?.io?.engine?.transport?.name,
+        attempts: this.reconnectAttempts
+      });
+    });
+
+    this.socket.on('reconnect_attempt', () => {
+      console.log('Attempting to reconnect:', {
+        attempt: this.reconnectAttempts + 1,
+        transport: this.socket?.io?.engine?.transport?.name
+      });
+    });
+
+    this.socket.on('reconnecting', (attemptNumber) => {
+      console.log('Reconnecting...', {
+        attemptNumber,
+        transport: this.socket?.io?.engine?.transport?.name
+      });
+    });
+
+    this.socket.on('nightUpdate', (night: number) => {
+      this.currentNight = night;
+      console.log('Night updated:', {
+        night,
+        socketId: this.socket?.id,
+        transport: this.socket?.io?.engine?.transport?.name
+      });
+    });
+
+    this.socket.on('specialActionResponse', (response: SpecialActionResponse) => {
+      console.log('Special action response:', {
+        response,
+        socketId: this.socket?.id,
+        transport: this.socket?.io?.engine?.transport?.name
+      });
+    });
+
+    // Handle transport changes
+    this.socket.io.engine?.on('upgrade', (transport) => {
+      console.log('Transport upgraded:', {
+        from: this.socket?.io?.engine?.transport?.name,
+        to: transport.name
+      });
+    });
+
+    // Handle close events
+    this.socket.io.engine?.on('close', (reason) => {
+      console.log('Transport closed:', {
+        reason,
+        transport: this.socket?.io?.engine?.transport?.name
+      });
     });
 
     this.setupListeners();
@@ -31,12 +158,39 @@ class SpecialPowersService {
   private setupListeners() {
     if (!this.socket) return;
 
+    this.socket.on('connect', () => {
+      console.log('Connected to special powers service');
+      console.log('Socket ID:', this.socket?.id);
+      console.log('Socket connected:', this.socket?.connected);
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      console.log('Disconnected from special powers service');
+      console.log('Disconnect reason:', reason);
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('Reconnected to special powers service', attemptNumber);
+    });
+
+    this.socket.on('reconnect_error', (error) => {
+      console.error('Socket reconnection error:', error);
+    });
+
+    this.socket.on('reconnect_attempt', () => {
+      console.log('Attempting to reconnect...');
+    });
+
+    this.socket.on('reconnecting', (attemptNumber) => {
+      console.log('Reconnecting...', attemptNumber);
+    });
+
     this.socket.on('nightUpdate', (night: number) => {
       this.currentNight = night;
+      console.log('Night updated:', night);
     });
 
     this.socket.on('specialActionResponse', (response: SpecialActionResponse) => {
-      // Handle response if needed
       console.log('Special action response:', response);
     });
   }

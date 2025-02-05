@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 import { useToast } from '@chakra-ui/react';
 import { FaEye, FaEyeSlash, FaGoogle, FaDiscord } from 'react-icons/fa';
+import AuthService from "../../services/AuthService";
 import './styles/auth.css';
 
 interface AuthFormData {
@@ -38,35 +39,19 @@ export const AuthPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const baseUrl = import.meta.env.PROD 
-        ? import.meta.env.VITE_PROD_API_URL 
-        : import.meta.env.VITE_API_URL;
-      const endpoint = isLogin ? `${baseUrl}/api/auth/login` : `${baseUrl}/api/auth/register`;
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(isLogin ? {
-          email: formData.email,
-          password: formData.password
-        } : {
-          username: formData.username,
-          email: formData.email,
-          password: formData.password
-        }),
-        credentials: 'include'
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Une erreur est survenue');
-      }
+      const response = isLogin 
+        ? await AuthService.login({
+            email: formData.email,
+            password: formData.password
+          })
+        : await AuthService.register({
+            username: formData.username!,
+            email: formData.email,
+            password: formData.password
+          });
 
       setIsAuthenticated(true);
-      setUser(data.user);
+      setUser(response.user);
 
       toast({
         title: isLogin ? 'Connexion réussie' : 'Compte créé avec succès',
