@@ -111,6 +111,7 @@ import {
   woolfyQuestions
 } from '../../types/game'
 import { nightChatService } from '../../services/NightChatService';
+import { SpecialActions } from '../../components/roles/SpecialActions';
 
 // Importer MediaRecorder depuis le type global
 declare global {
@@ -2918,6 +2919,16 @@ export const GameInProgress: React.FC = () => {
           </ModalBody>
         </ModalContent>
       </Modal>
+
+      <Box mt={4}>
+        <SpecialActions
+          players={players}
+          currentPlayer={players.find(p => p.isCurrent)}
+          currentPhase={currentPhase}
+          isEliminated={isEliminated}
+          activeConversations={activeConversations}
+        />
+      </Box>
     </Box>
     );
   };
